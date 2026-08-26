@@ -245,11 +245,12 @@ input,select{font-family:inherit;}
    PAPER PAGE — preview di layar dibuat identik ukurannya dengan
    halaman A4 yang benar-benar tercetak, supaya "Cetak / Simpan PDF"
    hasilnya sama persis dengan pre-review (tidak meluber / berubah
-   format). @page margin dibuat 0 dan jarak 12mm dipindah menjadi
-   padding internal .cetak-page, jadi ukurannya konsisten baik di
-   layar maupun di kertas.
+   format). Untuk cetak, margin diserahkan ke @page (bukan padding
+   .cetak-page) supaya SETIAP halaman fisik — termasuk halaman
+   lanjutan saat sebuah tabel panjang terpotong ke halaman
+   berikutnya — tetap mendapat margin yang sama di semua sisi.
    =========================================================== */
-@page{ size:A4 portrait; margin:0; }
+@page{ size:A4 portrait; margin:12mm; }
 
 .report-canvas{background:#dde2eb;padding:26px 14px;overflow-x:auto;}
 .cetak-page{
@@ -265,7 +266,12 @@ input,select{font-family:inherit;}
   .content{margin:0;padding:0;}
   .panel{border:none;box-shadow:none;padding:0;}
   .report-canvas{background:#fff;padding:0;overflow:visible;}
-  .cetak-page{box-shadow:none;margin:0;}
+  /* @page sudah memberi margin 12mm di semua sisi & semua halaman fisik,
+     jadi .cetak-page tidak lagi perlu meniru ukuran kertas + padding sendiri
+     (itu yang sebelumnya membuat halaman lanjutan tabel panjang tidak
+     bermargin di bagian atas). */
+  .cetak-page{width:auto;min-height:0;padding:0;box-shadow:none;margin:0;}
+  .cetak-page.rp-cover{height:273mm;} /* 297mm - (12mm x 2) supaya sampul tetap tepat 1 halaman */
   body{background:#fff;}
   #slipPreviewPanel{border:none;}
   #laporanPreviewPanel{border:none;}
@@ -273,8 +279,10 @@ input,select{font-family:inherit;}
   /* Pastikan warna latar (navy/gold) ikut tercetak, bukan dihilangkan browser */
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;}
 
-  /* Setiap .cetak-page = satu halaman, mulai di halaman baru & tidak digabung dgn halaman lain */
-  .cetak-page{page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;}
+  /* Setiap .cetak-page = satu halaman, mulai di halaman baru & tidak digabung dgn halaman lain.
+     (Tidak diberi page-break-inside:avoid di sini — beberapa lampiran/tabel bisa lebih panjang
+     dari satu halaman, dan itu wajar; yang penting tiap halaman fisik tetap bermargin seragam.) */
+  .cetak-page{page-break-after:always;break-after:page;}
   .cetak-page:last-child{page-break-after:auto;break-after:auto;}
 
   /* Blok dokumen inti: jangan sampai terpotong di tengah, dorong ke halaman berikutnya jika perlu */
