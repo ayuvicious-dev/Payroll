@@ -672,6 +672,7 @@ function muatDanHitungSlip() {
     jumlahSakitPeriode: r.jumlahSakit || 0,
     jumlahCutiPeriode: r.jumlahCutiTahunan || 0,
     rincian: r.rincian || null,
+    detailHarian: r.detailHarian || null,
     namaPegawai: p.nama
   };
 
@@ -829,6 +830,7 @@ function generateSlip() {
       jamPulangAwalTotal: currentSlipCalc.jamPulangAwalTotal || 0
     },
     rincianAbsensi: currentSlipCalc.rincian || null, // snapshot detail harian periode ini (untuk lampiran laporan)
+    absensiImport: currentSlipCalc.detailHarian || null, // snapshot tabel mentah hasil import excel (untuk lampiran laporan)
     dibuatPada: new Date().toISOString()
   };
 
@@ -1108,6 +1110,27 @@ function buildLampiranTabelKategori(kategori, list) {
     </table>`;
 }
 
+// Tabel mentah hasil import Excel kehadiran (satu baris per hari, apa adanya dari file yang diunggah)
+function buildTabelImportHtml(list) {
+  if (!list || list.length === 0) {
+    return `<div class="lampiran-empty">Tabel kehadiran hasil import tidak tersedia untuk slip ini (data berasal dari sheet ringkasan agregat, atau slip dibuat sebelum fitur ini tersimpan).</div>`;
+  }
+  const rows = list.map(h => `
+    <tr>
+      <td>${formatTanggalTampil(h.tanggal)}</td>
+      <td>${escapeHtml(h.status || "-")}</td>
+      <td>${escapeHtml(h.jamMasuk || "-")}</td>
+      <td>${escapeHtml(h.jamKeluar || "-")}</td>
+      <td>${escapeHtml(h.dailyReport || "-")}</td>
+      <td>${escapeHtml(h.keterangan || "-")}</td>
+    </tr>`).join("");
+  return `
+    <table class="lampiran-table">
+      <thead><tr><th>Tanggal</th><th>Status</th><th>Jam Masuk</th><th>Jam Keluar</th><th>Daily Report</th><th>Keterangan</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
 function buildLampiranStaffHtml(slip) {
   const r = slip.rincianAbsensi;
   const kategoriUrut = ["telat", "lupaAbsen", "mangkir", "dailyReport", "pulangAwal", "cuti"];
@@ -1153,6 +1176,8 @@ function buildLampiranStaffHtml(slip) {
       <div class="sub">${escapeHtml(slip.jabatan || "-")} · Periode ${escapeHtml(slip.periodeLabel)}</div>
     </div>
     <div class="lampiran-section-title">RINCIAN ABSENSI</div>
+    <div class="lampiran-subtitle">Tabel Kehadiran (Data Import Excel)</div>
+    ${buildTabelImportHtml(slip.absensiImport)}
     ${absensiHtml}
     <div class="lampiran-section-title">SURAT SAKIT</div>
     ${sakitHtml}
