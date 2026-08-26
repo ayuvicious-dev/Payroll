@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplikasi Penggajian</title>
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">PG</div>
+      <div class="brand-text">
+        <strong>Penggajian</strong>
+        <span id="companyNameLabel">PT. Kamil Group Indonesia</span>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-page="dashboard">📊 Dashboard</button>
+      <button class="nav-item" data-page="personalia">👤 Personalia</button>
+      <button class="nav-item" data-page="kehadiran">🗂️ Import Kehadiran</button>
+      <button class="nav-item" data-page="sakit">🩺 Surat Sakit</button>
+      <button class="nav-item" data-page="slip">🧾 Slip Gaji</button>
+      <button class="nav-item" data-page="riwayat">📜 Riwayat Slip</button>
+      <button class="nav-item" data-page="pengaturan">⚙️ Pengaturan</button>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="btnExportData" class="btn-ghost small">⬇ Ekspor Data</button>
+      <button id="btnImportData" class="btn-ghost small">⬆ Impor Data</button>
+      <input type="file" id="fileImportData" accept=".json" hidden>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOPBAR -->
+  <div class="topbar">
+    <button id="btnMenuToggle" class="icon-btn">☰</button>
+    <span id="pageTitleMobile">Dashboard</span>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- DASHBOARD -->
+    <section class="page active" id="page-dashboard">
+      <header class="page-head">
+        <h1>Dashboard</h1>
+        <p>Ringkasan data penggajian</p>
+      </header>
+      <div class="cards-grid" id="dashboardCards"></div>
+      <div class="panel">
+        <h2>Slip Terbaru</h2>
+        <div id="dashboardRecentSlips" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <!-- PERSONALIA -->
+    <section class="page" id="page-personalia">
+      <header class="page-head">
+        <h1>Personalia</h1>
+        <p>Kelola data pegawai — gunakan ini untuk pegawai baru atau saat cut off periode baru.</p>
+        <button class="btn-primary" id="btnTambahPersonalia">+ Tambah Personalia</button>
+      </header>
+      <div class="panel">
+        <div class="table-wrap">
+          <table class="data-table" id="tblPersonalia">
+            <thead>
+              <tr>
+                <th>Nama</th><th>Jabatan</th><th>Tgl Bergabung</th><th>Masa Kerja</th>
+                <th>Sakit Terpakai/Jatah</th><th>Cuti Terpakai/Jatah</th><th>Total Gaji</th><th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- IMPORT KEHADIRAN -->
+    <section class="page" id="page-kehadiran">
+      <header class="page-head">
+        <h1>Import Excel Kehadiran</h1>
+        <p>Unggah file rekap kehadiran (.xlsx) per pegawai untuk periode penggajian.</p>
+      </header>
+      <div class="panel">
+        <div class="form-grid">
+          <label>Pilih Personalia
+            <select id="selKehadiranPegawai"></select>
+          </label>
+          <label>File Excel Kehadiran (.xlsx)
+            <input type="file" id="fileKehadiran" accept=".xlsx,.xls">
+          </label>
+        </div>
+        <button class="btn-primary" id="btnProsesKehadiran">Proses File</button>
+        <div id="kehadiranPreview" class="preview-box"></div>
+      </div>
+    </section>
+
+    <!-- SURAT SAKIT -->
+    <section class="page" id="page-sakit">
+      <header class="page-head">
+        <h1>Input Surat Sakit</h1>
+        <p>Catat surat keterangan sakit beserta tanggalnya — otomatis menambah jumlah sakit terpakai.</p>
+        <button class="btn-primary" id="btnTambahSakit">+ Tambah Surat Sakit</button>
+      </header>
+      <div class="panel">
+        <div class="table-wrap">
+          <table class="data-table" id="tblSakit">
+            <thead>
+              <tr><th>Nama</th><th>Tgl Mulai</th><th>Tgl Selesai</th><th>Jumlah Hari</th><th>Keterangan</th><th>Aksi</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIP GAJI -->
+    <section class="page" id="page-slip">
+      <header class="page-head">
+        <h1>Generate Slip Gaji</h1>
+        <p>Pilih pegawai dan periode untuk membuat slip gaji.</p>
+      </header>
+      <div class="panel">
+        <div class="form-grid">
+          <label>Pegawai
+            <select id="selSlipPegawai"></select>
+          </label>
+          <label>Bulan Slip (label, misal: AGUSTUS 2026)
+            <input type="text" id="inpSlipBulan" placeholder="AGUSTUS 2026">
+          </label>
+          <label>Tanggal Batas Cut Off
+            <input type="date" id="inpCutOff">
+          </label>
+        </div>
+        <button class="btn-primary" id="btnMuatDataSlip">Muat Data Kehadiran &amp; Hitung</button>
+      </div>
+
+      <div class="panel" id="slipAdjustPanel" style="display:none">
+        <h2>Penerimaan &amp; Pemotongan Tambahan</h2>
+        <div class="form-grid three">
+          <label>THR<input type="number" id="adjTHR" value="0"></label>
+          <label>Tunjangan Liburan<input type="number" id="adjTunjLiburan" value="0"></label>
+          <label>Lembur<input type="number" id="adjLembur" value="0"></label>
+          <label>BPJS Kesehatan<input type="number" id="adjBPJS" value="0"></label>
+          <label>Kasbon<input type="number" id="adjKasbon" value="0"></label>
+          <label>Konversi Cuti<input type="number" id="adjKonversiCuti" value="0"></label>
+        </div>
+        <h2>Hasil Perhitungan Otomatis dari Kehadiran</h2>
+        <div id="autoCalcSummary" class="calc-summary"></div>
+        <button class="btn-primary" id="btnGenerateSlip">Buat Slip Gaji</button>
+      </div>
+
+      <div class="panel" id="slipPreviewPanel" style="display:none">
+        <div class="slip-actions">
+          <button class="btn-primary" id="btnPrintSlip">🖨️ Cetak / Simpan PDF</button>
+          <button class="btn-ghost" id="btnSimpanSlip">💾 Simpan ke Riwayat</button>
+        </div>
+        <div id="slipContainer"></div>
+      </div>
+    </section>
+
+    <!-- RIWAYAT -->
+    <section class="page" id="page-riwayat">
+      <header class="page-head">
+        <h1>Riwayat Slip</h1>
+        <p>Semua slip gaji yang pernah dibuat.</p>
+      </header>
+      <div class="panel">
+        <div class="table-wrap">
+          <table class="data-table" id="tblRiwayat">
+            <thead><tr><th>Nama</th><th>Periode</th><th>THP</th><th>Tanggal Dibuat</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PENGATURAN -->
+    <section class="page" id="page-pengaturan">
+      <header class="page-head">
+        <h1>Pengaturan Perusahaan</h1>
+        <p>Data ini muncul di kop slip gaji.</p>
+      </header>
+      <div class="panel">
+        <div class="form-grid">
+          <label>Nama Perusahaan<input type="text" id="cfgNamaPerusahaan"></label>
+          <label>Alamat Baris 1<input type="text" id="cfgAlamat1"></label>
+          <label>Alamat Baris 2<input type="text" id="cfgAlamat2"></label>
+          <label>Alamat Baris 3<input type="text" id="cfgAlamat3"></label>
+          <label>Jam Masuk Standar<input type="time" id="cfgJamMasuk"></label>
+          <label>Jam Pulang Standar<input type="time" id="cfgJamPulang"></label>
+          <label>Toleransi Terlambat (menit)<input type="number" id="cfgToleransi"></label>
+          <label>Hari Kerja per Bulan<input type="number" id="cfgHariKerja"></label>
+          <label>Jam Kerja per Hari<input type="number" id="cfgJamKerja"></label>
+        </div>
+        <button class="btn-primary" id="btnSimpanPengaturan">Simpan Pengaturan</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL: Tambah/Edit Personalia -->
+<div class="modal-overlay" id="modalPersonalia">
+  <div class="modal">
+    <h2 id="modalPersonaliaTitle">Tambah Personalia</h2>
+    <div class="form-grid two">
+      <label>Nama<input type="text" id="fNama"></label>
+      <label>Jabatan<input type="text" id="fJabatan"></label>
+      <label>Tanggal Bergabung<input type="date" id="fTglBergabung"></label>
+      <label>Jumlah Jatah Sakit / Tahun<input type="number" id="fJatahSakit" value="12"></label>
+      <label>Jumlah Sakit Terpakai (awal)<input type="number" id="fSakitTerpakai" value="0"></label>
+      <label>Jumlah Jatah Cuti / Tahun<input type="number" id="fJatahCuti" value="6"></label>
+      <label>Jatah Cuti Terpakai (awal)<input type="number" id="fCutiTerpakai" value="0"></label>
+      <label>Visit In/Out<input type="number" id="fVisitInOut" value="0"></label>
+      <label>Total Gaji (akan otomatis dibagi 80/10/10)<input type="number" id="fTotalGaji" value="0"></label>
+    </div>
+    <div class="split-preview" id="splitPreview"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnBatalPersonalia">Batal</button>
+      <button class="btn-primary" id="btnSimpanPersonalia">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Tambah Surat Sakit -->
+<div class="modal-overlay" id="modalSakit">
+  <div class="modal">
+    <h2>Tambah Surat Sakit</h2>
+    <div class="form-grid two">
+      <label>Pegawai
+        <select id="fSakitPegawai"></select>
+      </label>
+      <label>Keterangan<input type="text" id="fSakitKeterangan" placeholder="Demam, dll"></label>
+      <label>Tanggal Mulai<input type="date" id="fSakitMulai"></label>
+      <label>Tanggal Selesai<input type="date" id="fSakitSelesai"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnBatalSakit">Batal</button>
+      <button class="btn-primary" id="btnSimpanSakit">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script src="./js/xlsx.full.min.js"></script>
+<script src="./js/app.js"></script>
+</body>
+</html>
