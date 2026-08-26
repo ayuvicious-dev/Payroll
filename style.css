@@ -225,7 +225,7 @@ input,select{font-family:inherit;}
 .slip-foot-note{margin-top:14px;padding-top:6px;border-top:1px solid var(--rp-line);
   font-size:9px;color:var(--rp-muted);text-align:center;letter-spacing:.3px;}
 
-@media (max-width: 900px){
+@media screen and (max-width: 900px){
   .sidebar{transform:translateX(-100%);}
   .sidebar.open{transform:translateX(0);}
   .collapse-btn{display:none;}
