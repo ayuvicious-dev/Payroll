@@ -916,7 +916,6 @@ function buildSlipSheetHtml(s) {
       <div><div>Payroll</div><div class="line">&nbsp;</div></div>
       <div><div>Diterima Oleh,</div><div class="line">${escapeHtml(s.nama)}</div></div>
     </div>
-    <div class="slip-foot-note">Dokumen ini dihasilkan otomatis oleh sistem penggajian ${escapeHtml(cfg.namaPerusahaan)} — mohon disimpan sebagai arsip pribadi.</div>
   </div>`;
 }
 
@@ -1065,7 +1064,6 @@ function buildCoverHtml(periodeLabel, slips) {
       <div class="rp-cover-meta">
         <div class="rp-cover-meta-row"><span>Jumlah Staff</span><span>${slips.length} Orang</span></div>
         <div class="rp-cover-meta-row"><span>Total Take Home Pay</span><span>${formatRupiah(totalTHP)}</span></div>
-        <div class="rp-cover-meta-row"><span>Dicetak Pada</span><span>${formatTglIndoLong(new Date())}</span></div>
       </div>
     </div>
     <div class="rp-cover-foot">Dokumen ini berisi slip gaji, ringkasan periode, serta lampiran pendukung — dihasilkan otomatis oleh sistem penggajian internal.</div>
