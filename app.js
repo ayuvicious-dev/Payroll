@@ -173,10 +173,11 @@ function openModalPersonalia(id) {
     document.getElementById("fSakitTerpakai").value = p.sakitTerpakai;
     document.getElementById("fJatahCuti").value = p.jatahCuti;
     document.getElementById("fCutiTerpakai").value = p.cutiTerpakai;
+    document.getElementById("fEmail").value = p.email || "";
     document.getElementById("fVisitInOut").value = p.visitInOut;
     document.getElementById("fTotalGaji").value = p.totalGaji;
   } else {
-    ["fNama", "fJabatan", "fTglBergabung"].forEach(id2 => document.getElementById(id2).value = "");
+    ["fNama", "fJabatan", "fTglBergabung", "fEmail"].forEach(id2 => document.getElementById(id2).value = "");
     document.getElementById("fJatahSakit").value = 12;
     document.getElementById("fSakitTerpakai").value = 0;
     document.getElementById("fJatahCuti").value = 6;
@@ -216,6 +217,7 @@ function simpanPersonalia() {
     sakitTerpakai: Number(document.getElementById("fSakitTerpakai").value) || 0,
     jatahCuti: Number(document.getElementById("fJatahCuti").value) || 0,
     cutiTerpakai: Number(document.getElementById("fCutiTerpakai").value) || 0,
+    email: document.getElementById("fEmail").value.trim(),
     visitInOut: Number(document.getElementById("fVisitInOut").value) || 0,
     totalGaji: total,
     gajiPokok: split.pokok,
@@ -848,6 +850,7 @@ function generateSlip() {
     personaliaId: p.id,
     nama: p.nama,
     jabatan: p.jabatan,
+    email: p.email || "",
     periodeLabel: bulanLabel,
     cutOff,
     tglBergabung: p.tglBergabung,
@@ -1003,6 +1006,7 @@ function renderRiwayatTable() {
         <button class="btn-icon" data-action="naik-slip" data-id="${s.id}" title="Pindah urutan ke atas" ${i === 0 ? "disabled" : ""}>▲</button>
         <button class="btn-icon" data-action="turun-slip" data-id="${s.id}" title="Pindah urutan ke bawah" ${i === list.length - 1 ? "disabled" : ""}>▼</button>
         <button class="btn-icon" data-action="lihat-slip" data-id="${s.id}">Lihat</button>
+        <button class="btn-icon" data-action="email-slip" data-id="${s.id}" title="Kirim slip ini ke email pegawai">✉ Email</button>
         <button class="btn-danger" data-action="hapus-slip" data-id="${s.id}">Hapus</button>
       </td>`;
     tbody.appendChild(tr);
@@ -1034,6 +1038,44 @@ function lihatSlipRiwayat(id) {
   renderSlipPreview(s);
   document.getElementById("slipPreviewPanel").style.display = "block";
   document.getElementById("slipPreviewPanel").dataset.pending = "";
+}
+
+function kirimEmailSlipRiwayat(id) {
+  const s = DB.riwayatSlip.find(x => x.id === id);
+  if (!s) return;
+
+  // Email diambil dari data yang tersimpan di slip (snapshot saat slip dibuat);
+  // kalau belum ada (slip lama sebelum fitur ini), coba ambil dari data
+  // Personalia terkini sebagai cadangan.
+  let email = s.email;
+  if (!email) {
+    const p = getPersonaliaById(s.personaliaId);
+    email = (p && p.email) || "";
+  }
+  if (!email) {
+    alert(`Email untuk "${s.nama}" belum diisi.\n\nSilakan isi email pegawai ini terlebih dahulu di menu Personalia (tombol Edit), lalu coba kirim lagi.`);
+    return;
+  }
+
+  const subject = `Slip Gaji ${s.nama} - ${s.periodeLabel}`;
+  const body = [
+    `Yth. ${s.nama},`,
+    ``,
+    `Berikut ringkasan slip gaji Anda:`,
+    `Periode          : ${s.periodeLabel}`,
+    `Jabatan          : ${s.jabatan || "-"}`,
+    `Total Penerimaan : ${formatRupiah(s.penerimaan?.total || 0)}`,
+    `Total Pemotongan : ${formatRupiah(s.pemotongan?.total || 0)}`,
+    `Take Home Pay    : ${formatRupiah(s.thp || 0)}`,
+    ``,
+    `Mohon lampirkan slip gaji lengkap (PDF) pada email ini sebelum dikirim.`,
+    `Caranya: buka Riwayat Slip > Lihat > tombol "Cetak / Simpan PDF", simpan sebagai file PDF, lalu lampirkan secara manual ke email ini.`,
+    ``,
+    `Terima kasih.`
+  ].join("\n");
+
+  const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoUrl;
 }
 
 function hapusSlipRiwayat(id) {
@@ -1635,6 +1677,7 @@ function startPayrollApp() {
     if (btn.dataset.action === "hapus-slip") hapusSlipRiwayat(btn.dataset.id);
     if (btn.dataset.action === "naik-slip") pindahUrutanRiwayat(btn.dataset.id, "naik");
     if (btn.dataset.action === "turun-slip") pindahUrutanRiwayat(btn.dataset.id, "turun");
+    if (btn.dataset.action === "email-slip") kirimEmailSlipRiwayat(btn.dataset.id);
   });
 
   // Laporan Periode
