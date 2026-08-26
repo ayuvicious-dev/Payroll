@@ -945,7 +945,10 @@ function renderRiwayatTable() {
       <td>${escapeHtml(s.periodeLabel)}</td>
       <td>${formatRupiah(s.thp)}</td>
       <td>${new Date(s.dibuatPada).toLocaleString("id-ID")}</td>
-      <td><button class="btn-icon" data-action="lihat-slip" data-id="${s.id}">Lihat</button></td>`;
+      <td>
+        <button class="btn-icon" data-action="lihat-slip" data-id="${s.id}">Lihat</button>
+        <button class="btn-danger" data-action="hapus-slip" data-id="${s.id}">Hapus</button>
+      </td>`;
     tbody.appendChild(tr);
   });
 }
@@ -958,6 +961,17 @@ function lihatSlipRiwayat(id) {
   renderSlipPreview(s);
   document.getElementById("slipPreviewPanel").style.display = "block";
   document.getElementById("slipPreviewPanel").dataset.pending = "";
+}
+
+function hapusSlipRiwayat(id) {
+  const s = DB.riwayatSlip.find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`Hapus slip "${s.nama}" periode ${s.periodeLabel} dari riwayat? Tindakan ini tidak bisa dibatalkan.`)) return;
+  DB.riwayatSlip = DB.riwayatSlip.filter(x => x.id !== id);
+  saveDB();
+  renderRiwayatTable();
+  renderDashboard();
+  populateLaporanPeriodeSelect();
 }
 
 /* ---------------------------------------------------------
@@ -1111,11 +1125,20 @@ function buildLampiranTabelKategori(kategori, list) {
 }
 
 // Tabel mentah hasil import Excel kehadiran (satu baris per hari, apa adanya dari file yang diunggah)
-function buildTabelImportHtml(list) {
-  if (!list || list.length === 0) {
-    return `<div class="lampiran-empty">Tabel kehadiran hasil import tidak tersedia untuk slip ini (data berasal dari sheet ringkasan agregat, atau slip dibuat sebelum fitur ini tersimpan).</div>`;
+// - "list" = snapshot yang tersimpan di slip itu sendiri (paling akurat, sesuai kondisi saat slip dibuat)
+// - "fallbackList" = data import pegawai yang tersimpan SAAT INI di DB.kehadiranImport (dipakai bila slip
+//   dibuat/disimpan sebelum fitur ini ada, sehingga snapshot-nya belum tersimpan)
+function buildTabelImportHtml(list, fallbackList) {
+  const usedFallback = (!list || list.length === 0) && fallbackList && fallbackList.length > 0;
+  const finalList = (list && list.length > 0) ? list : (usedFallback ? fallbackList : null);
+
+  if (!finalList) {
+    return `<div class="lampiran-empty">Tabel kehadiran hasil import tidak tersedia untuk slip ini (data berasal dari sheet ringkasan agregat, atau slip dibuat sebelum fitur ini tersimpan — buka lagi periode ini di halaman Slip Gaji lalu generate &amp; simpan ulang agar tabel ini ikut tersimpan).</div>`;
   }
-  const rows = list.map(h => `
+  const catatanFallback = usedFallback
+    ? `<div class="lampiran-fallback-note">Catatan: slip ini dibuat sebelum fitur tabel import tersimpan otomatis, sehingga tabel di bawah diambil dari data import kehadiran pegawai yang tersimpan SAAT INI (bukan snapshot asli saat slip dibuat). Pastikan periode file yang terakhir diimpor untuk pegawai ini sesuai dengan periode slip ini.</div>`
+    : "";
+  const rows = finalList.map(h => `
     <tr>
       <td>${formatTanggalTampil(h.tanggal)}</td>
       <td>${escapeHtml(h.status || "-")}</td>
@@ -1125,6 +1148,7 @@ function buildTabelImportHtml(list) {
       <td>${escapeHtml(h.keterangan || "-")}</td>
     </tr>`).join("");
   return `
+    ${catatanFallback}
     <table class="lampiran-table">
       <thead><tr><th>Tanggal</th><th>Status</th><th>Jam Masuk</th><th>Jam Keluar</th><th>Daily Report</th><th>Keterangan</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -1177,7 +1201,7 @@ function buildLampiranStaffHtml(slip) {
     </div>
     <div class="lampiran-section-title">RINCIAN ABSENSI</div>
     <div class="lampiran-subtitle">Tabel Kehadiran (Data Import Excel)</div>
-    ${buildTabelImportHtml(slip.absensiImport)}
+    ${buildTabelImportHtml(slip.absensiImport, (DB.kehadiranImport[slip.personaliaId] || {}).detailHarian)}
     ${absensiHtml}
     <div class="lampiran-section-title">SURAT SAKIT</div>
     ${sakitHtml}
@@ -1488,6 +1512,7 @@ function startPayrollApp() {
     const btn = e.target.closest("button");
     if (!btn) return;
     if (btn.dataset.action === "lihat-slip") lihatSlipRiwayat(btn.dataset.id);
+    if (btn.dataset.action === "hapus-slip") hapusSlipRiwayat(btn.dataset.id);
   });
 
   // Laporan Periode
