@@ -552,9 +552,11 @@ function hitungRekapDariHarian(hari) {
         }
       }
 
-      if (h.dailyReport && !/on-?time/i.test(h.dailyReport)) {
+      const drVal = h.dailyReport || "";
+      const isDailyReportOnTime = /on[\s-]?time/i.test(drVal);
+      if (!isDailyReportOnTime) {
         jumlahTidakDailyReport += 1;
-        rincianDailyReport.push({ tanggal: h.tanggal, dailyReport: h.dailyReport || "-" });
+        rincianDailyReport.push({ tanggal: h.tanggal, dailyReport: drVal || "Tidak diisi (off-time)" });
       }
     }
   });
