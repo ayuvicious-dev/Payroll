@@ -993,7 +993,6 @@ function getSuratSakitUntukSlip(slip) {
 function buildCoverHtml(periodeLabel, slips) {
   const cfg = DB.config;
   const totalTHP = slips.reduce((a, s) => a + (s.thp || 0), 0);
-  const sekarang = new Date().toLocaleString("id-ID");
   return `
   <div class="cetak-page laporan-cover">
     ${cfg.logoUrl ? `<img class="cover-logo" src="${cfg.logoUrl}" alt="Logo Perusahaan">` : ""}
@@ -1004,12 +1003,7 @@ function buildCoverHtml(periodeLabel, slips) {
     <table class="cover-info-table">
       <tr><td>Jumlah Staff</td><td>: ${slips.length} orang</td></tr>
       <tr><td>Total THP Periode Ini</td><td>: ${formatRupiah(totalTHP)}</td></tr>
-      <tr><td>Dokumen Dibuat</td><td>: ${sekarang}</td></tr>
     </table>
-    <div class="cover-footer">
-      Dokumen ini berisi slip gaji seluruh staff beserta lampiran rincian absensi dan surat sakit
-      untuk periode ${escapeHtml(periodeLabel)}. Bersifat rahasia — hanya untuk pihak yang berkepentingan.
-    </div>
   </div>`;
 }
 

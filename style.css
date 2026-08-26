@@ -195,6 +195,8 @@ input,select{font-family:inherit;}
   .slip-sign{grid-template-columns:1fr;}
 }
 
+@page{ margin:12mm; }
+
 @media print{
   .sidebar,.topbar,.slip-actions,.page-head,.panel .btn-primary,.no-print{display:none !important;}
   .content{margin:0;padding:0;}
@@ -224,7 +226,6 @@ input,select{font-family:inherit;}
 .laporan-cover .cover-info-table{border-collapse:collapse;margin:0 auto 26px;font-size:13px;}
 .laporan-cover .cover-info-table td{padding:6px 14px;border-bottom:1px solid var(--border);text-align:left;}
 .laporan-cover .cover-info-table td:first-child{color:var(--ink-soft);}
-.laporan-cover .cover-footer{font-size:11px;color:var(--ink-soft);margin-top:auto;}
 
 .lampiran-sheet{max-width:820px;margin:0 auto;font-size:13px;padding:12px 0;}
 .lampiran-head{text-align:center;margin-bottom:16px;}
