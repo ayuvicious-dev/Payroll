@@ -237,3 +237,11 @@ input,select{font-family:inherit;}
 .modal-foto{max-width:min(90vw,700px);background:#111;padding:16px;position:relative;text-align:center;}
 .modal-foto img{max-width:100%;max-height:80vh;border-radius:8px;}
 .modal-foto-close{position:absolute;top:10px;right:10px;}
+
+/* LOGO PERUSAHAAN (Pengaturan) */
+#cfgLogoPreviewWrap{display:flex;align-items:center;gap:10px;margin:10px 0 14px;}
+#cfgLogoPreview{max-width:140px;max-height:100px;border-radius:8px;border:1px solid var(--border);object-fit:contain;background:#fff;padding:6px;}
+
+/* LOGO DI SLIP GAJI */
+.slip-header{position:relative;}
+.slip-logo{max-width:110px;max-height:80px;object-fit:contain;display:block;margin:0 auto 8px;}

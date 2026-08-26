@@ -246,6 +246,13 @@
           <label>Hari Kerja per Bulan<input type="number" id="cfgHariKerja"></label>
           <label>Jam Kerja per Hari<input type="number" id="cfgJamKerja"></label>
         </div>
+        <label>Logo Perusahaan (opsional, akan muncul di kop slip gaji)
+          <input type="file" id="cfgLogo" accept="image/*">
+        </label>
+        <div id="cfgLogoPreviewWrap" style="display:none">
+          <img id="cfgLogoPreview" alt="Preview logo perusahaan">
+          <button type="button" class="btn-ghost small" id="btnHapusLogo">✕ Hapus logo</button>
+        </div>
         <button class="btn-primary" id="btnSimpanPengaturan">Simpan Pengaturan</button>
       </div>
     </section>

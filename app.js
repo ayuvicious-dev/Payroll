@@ -10,6 +10,7 @@ const DEFAULT_CONFIG = {
   alamat1: "Kavling DPRD II, Jl Monginsidi No. 16",
   alamat2: "Sidoklumpuk, Bluru Kidul, Kec. Sidoarjo",
   alamat3: "Kab. Sidoarjo, Jawa Timur, 61218",
+  logoUrl: "",
   jamMasuk: "08:00",
   jamPulang: "16:00",
   jamPulangSabtu: "13:00",
@@ -299,6 +300,7 @@ function compressImageToBase64(file, maxDim = 900, quality = 0.6) {
 }
 
 let __sakitFotoBase64 = null;
+let __logoBase64 = null;
 
 function resetFormFotoSakit() {
   __sakitFotoBase64 = null;
@@ -827,6 +829,7 @@ function renderSlipPreview(s) {
   const html = `
   <div class="slip-sheet">
     <div class="slip-header">
+      ${cfg.logoUrl ? `<img class="slip-logo" src="${cfg.logoUrl}" alt="Logo Perusahaan">` : ""}
       <div class="company">${escapeHtml(cfg.namaPerusahaan)}</div>
       <div class="addr">${escapeHtml(cfg.alamat1)}<br>${escapeHtml(cfg.alamat2)}<br>${escapeHtml(cfg.alamat3)}</div>
     </div>
@@ -975,6 +978,16 @@ function renderPengaturanForm() {
   document.getElementById("cfgHariKerja").value = c.hariKerjaPerBulan;
   document.getElementById("cfgJamKerja").value = c.jamKerjaPerHari;
   document.getElementById("companyNameLabel").textContent = c.namaPerusahaan;
+
+  __logoBase64 = c.logoUrl || null;
+  document.getElementById("cfgLogo").value = "";
+  if (c.logoUrl) {
+    document.getElementById("cfgLogoPreview").src = c.logoUrl;
+    document.getElementById("cfgLogoPreviewWrap").style.display = "flex";
+  } else {
+    document.getElementById("cfgLogoPreview").src = "";
+    document.getElementById("cfgLogoPreviewWrap").style.display = "none";
+  }
 }
 
 function simpanPengaturan() {
@@ -983,6 +996,7 @@ function simpanPengaturan() {
     alamat1: document.getElementById("cfgAlamat1").value,
     alamat2: document.getElementById("cfgAlamat2").value,
     alamat3: document.getElementById("cfgAlamat3").value,
+    logoUrl: __logoBase64 || "",
     jamMasuk: document.getElementById("cfgJamMasuk").value,
     jamPulang: document.getElementById("cfgJamPulang").value,
     jamPulangSabtu: document.getElementById("cfgJamPulangSabtu").value,
@@ -1186,6 +1200,25 @@ function startPayrollApp() {
 
   // Pengaturan
   document.getElementById("btnSimpanPengaturan").addEventListener("click", simpanPengaturan);
+  document.getElementById("cfgLogo").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { alert("File harus berupa gambar/foto."); e.target.value = ""; return; }
+    try {
+      __logoBase64 = await compressImageToBase64(file, 500, 0.85);
+      document.getElementById("cfgLogoPreview").src = __logoBase64;
+      document.getElementById("cfgLogoPreviewWrap").style.display = "flex";
+    } catch (err) {
+      alert("Gagal memproses logo: " + err.message);
+      e.target.value = "";
+    }
+  });
+  document.getElementById("btnHapusLogo").addEventListener("click", () => {
+    __logoBase64 = null;
+    document.getElementById("cfgLogo").value = "";
+    document.getElementById("cfgLogoPreview").src = "";
+    document.getElementById("cfgLogoPreviewWrap").style.display = "none";
+  });
 
   // Ekspor/Impor backup
   document.getElementById("btnExportData").addEventListener("click", eksporData);
