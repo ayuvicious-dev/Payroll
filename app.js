@@ -53,8 +53,8 @@ function uid() {
 }
 
 function formatRupiah(n) {
-  n = Number(n) || 0;
-  return "Rp " + n.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  n = Math.round(Number(n) || 0);
+  return "Rp " + n.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function parseDateFlexible(str) {
@@ -116,7 +116,7 @@ function hitungSplitGaji(total) {
   const makan = round2(total * 0.1);
   return { pokok, transport, makan };
 }
-function round2(n) { return Math.round(n * 100) / 100; }
+function round2(n) { return Math.round(n); }
 
 function getPersonaliaById(id) {
   return DB.personalia.find(p => p.id === id);
@@ -905,7 +905,7 @@ function buildSlipSheetHtml(s) {
       </div>
       <div class="slip-doc-tag">Slip Gaji</div>
     </div>
-    <div class="slip-title">SLIP GAJI ${escapeHtml(s.periodeLabel.toUpperCase())}${s.tanpaAbsensi ? ' <span class="slip-tag-tanpa-absensi">(Tanpa Perhitungan Absensi)</span>' : ""}</div>
+    <div class="slip-title">SLIP GAJI ${escapeHtml(s.periodeLabel.toUpperCase())}</div>
     <div class="slip-cols">
       <div>
         <div class="slip-row"><span>Nama</span><span>:</span><span>${escapeHtml(s.nama)}</span></div>
@@ -1107,7 +1107,7 @@ function buildCoverHtml(periodeLabel, slips) {
         <div class="rp-cover-meta-row"><span>Total Take Home Pay</span><span>${formatRupiah(totalTHP)}</span></div>
       </div>
     </div>
-    <div class="rp-cover-foot">Dokumen ini berisi slip gaji, ringkasan periode, serta lampiran pendukung — dihasilkan otomatis oleh sistem penggajian internal.</div>
+
     <div class="rp-bottombar"></div>
   </div>`;
 }
@@ -1168,7 +1168,7 @@ function buildLampiranDividerHtml(periodeLabel, slips) {
         <div class="rp-cover-meta-row"><span>Jumlah Staff</span><span>${slips.length} Orang</span></div>
       </div>
     </div>
-    <div class="rp-cover-foot">Halaman berikut memuat rincian pendukung untuk setiap slip gaji pada laporan ini.</div>
+
     <div class="rp-bottombar"></div>
   </div>`;
 }
