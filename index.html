@@ -65,6 +65,7 @@
       <div class="nav-group-label">PENGGAJIAN</div>
       <button class="nav-item" data-page="slip"><span class="nav-icon">▧</span>Slip Gaji</button>
       <button class="nav-item" data-page="riwayat"><span class="nav-icon">▥</span>Riwayat Slip</button>
+      <button class="nav-item" data-page="laporan"><span class="nav-icon">❐</span>Laporan Periode</button>
 
       <div class="nav-group-label">LAINNYA</div>
       <button class="nav-item" data-page="pengaturan"><span class="nav-icon">⚙</span>Pengaturan</button>
@@ -224,6 +225,31 @@
             <tbody></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- LAPORAN PERIODE (PDF KESELURUHAN) -->
+    <section class="page" id="page-laporan">
+      <header class="page-head">
+        <h1>Laporan Periode</h1>
+        <p>Gabungkan cover, seluruh slip gaji staff, dan lampiran rincian absensi &amp; surat sakit satu periode menjadi satu file PDF (via dialog cetak browser).</p>
+      </header>
+
+      <div class="panel no-print">
+        <div class="form-grid">
+          <label>Pilih Periode
+            <select id="selLaporanPeriode"></select>
+          </label>
+        </div>
+        <button class="btn-primary" id="btnBuatLaporan">Buat Laporan</button>
+        <div id="laporanInfo" class="preview-box"></div>
+      </div>
+
+      <div class="panel" id="laporanPreviewPanel" style="display:none">
+        <div class="slip-actions">
+          <button class="btn-primary" id="btnPrintLaporan">🖨️ Cetak / Simpan Semua sebagai PDF</button>
+        </div>
+        <div id="laporanContainer"></div>
       </div>
     </section>
 

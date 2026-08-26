@@ -701,6 +701,27 @@ function formatTanggalTampil(tanggalRaw) {
   return d.toLocaleDateString("id-ID", { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
 }
 
+function keteranganRincian(kategori, item) {
+  switch (kategori) {
+    case "telat":
+      return `Jam masuk: ${item.jamMasuk} · Telat ${item.jamTelat} jam`;
+    case "lupaAbsen":
+      return `${item.jenis} tidak tercatat (dihitung ${item.jam} jam)`;
+    case "mangkir":
+      return `${item.status}${item.keterangan ? " — " + item.keterangan : ""}`;
+    case "dailyReport":
+      return `Status: ${item.dailyReport}`;
+    case "pulangAwal":
+      return `Jam keluar: ${item.jamKeluar} · Kurang ${item.jamKurang} jam`;
+    case "sakit":
+      return `${item.status}${item.keterangan ? " — " + item.keterangan : ""}`;
+    case "cuti":
+      return `${item.status}${item.keterangan ? " — " + item.keterangan : ""} (${item.jumlah} hari)`;
+    default:
+      return "";
+  }
+}
+
 function bukaDetailKehadiran(kategori) {
   if (!currentSlipCalc) return;
   const label = KATEGORI_LABEL[kategori] || kategori;
@@ -724,30 +745,7 @@ function bukaDetailKehadiran(kategori) {
   let rows = "";
   list.forEach(item => {
     const tgl = formatTanggalTampil(item.tanggal);
-    let keterangan = "";
-    switch (kategori) {
-      case "telat":
-        keterangan = `Jam masuk: ${item.jamMasuk} · Telat ${item.jamTelat} jam`;
-        break;
-      case "lupaAbsen":
-        keterangan = `${item.jenis} tidak tercatat (dihitung ${item.jam} jam)`;
-        break;
-      case "mangkir":
-        keterangan = `${item.status}${item.keterangan ? " — " + item.keterangan : ""}`;
-        break;
-      case "dailyReport":
-        keterangan = `Status: ${item.dailyReport}`;
-        break;
-      case "pulangAwal":
-        keterangan = `Jam keluar: ${item.jamKeluar} · Kurang ${item.jamKurang} jam`;
-        break;
-      case "sakit":
-        keterangan = `${item.status}${item.keterangan ? " — " + item.keterangan : ""}`;
-        break;
-      case "cuti":
-        keterangan = `${item.status}${item.keterangan ? " — " + item.keterangan : ""} (${item.jumlah} hari)`;
-        break;
-    }
+    const keterangan = keteranganRincian(kategori, item);
     rows += `<tr><td>${tgl}</td><td>${keterangan}</td></tr>`;
   });
 
@@ -817,6 +815,14 @@ function generateSlip() {
       leaveEarly: currentSlipCalc.potLeaveEarly, total: totalPemotongan
     },
     thp,
+    ringkasanAbsensi: {
+      jamTelatTotal: currentSlipCalc.jamTelatTotal || 0,
+      jamLupaAbsenTotal: currentSlipCalc.jamLupaAbsenTotal || 0,
+      hariMangkir: currentSlipCalc.hariMangkir || 0,
+      jumlahTidakDailyReport: currentSlipCalc.jumlahTidakDailyReport || 0,
+      jamPulangAwalTotal: currentSlipCalc.jamPulangAwalTotal || 0
+    },
+    rincianAbsensi: currentSlipCalc.rincian || null, // snapshot detail harian periode ini (untuk lampiran laporan)
     dibuatPada: new Date().toISOString()
   };
 
@@ -826,9 +832,9 @@ function generateSlip() {
   document.getElementById("slipPreviewPanel").scrollIntoView({ behavior: "smooth" });
 }
 
-function renderSlipPreview(s) {
+function buildSlipSheetHtml(s) {
   const cfg = DB.config;
-  const html = `
+  return `
   <div class="slip-sheet">
     <div class="slip-header">
       ${cfg.logoUrl ? `<img class="slip-logo" src="${cfg.logoUrl}" alt="Logo Perusahaan">` : ""}
@@ -887,7 +893,10 @@ function renderSlipPreview(s) {
       <div><div>Diterima Oleh,</div><div class="line">${escapeHtml(s.nama)}</div></div>
     </div>
   </div>`;
-  document.getElementById("slipContainer").innerHTML = html;
+}
+
+function renderSlipPreview(s) {
+  document.getElementById("slipContainer").innerHTML = buildSlipSheetHtml(s);
 }
 
 function simpanSlipKeRiwayat() {
@@ -905,6 +914,7 @@ function simpanSlipKeRiwayat() {
   renderPersonaliaTable();
   renderRiwayatTable();
   renderDashboard();
+  populateLaporanPeriodeSelect();
   alert("Slip berhasil disimpan ke riwayat.");
 }
 
@@ -934,6 +944,162 @@ function lihatSlipRiwayat(id) {
   renderSlipPreview(s);
   document.getElementById("slipPreviewPanel").style.display = "block";
   document.getElementById("slipPreviewPanel").dataset.pending = "";
+}
+
+/* ---------------------------------------------------------
+   LAPORAN PERIODE (PDF Keseluruhan: cover + semua slip + lampiran)
+--------------------------------------------------------- */
+function daftarPeriodeTersedia() {
+  const set = new Set();
+  DB.riwayatSlip.forEach(s => { if (s.periodeLabel) set.add(s.periodeLabel); });
+  return Array.from(set);
+}
+
+function populateLaporanPeriodeSelect() {
+  const sel = document.getElementById("selLaporanPeriode");
+  if (!sel) return;
+  const current = sel.value;
+  const periodeList = daftarPeriodeTersedia();
+  if (periodeList.length === 0) {
+    sel.innerHTML = `<option value="">(Belum ada slip tersimpan)</option>`;
+  } else {
+    sel.innerHTML = periodeList.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+    if (current && periodeList.includes(current)) sel.value = current;
+  }
+}
+
+// Cari surat sakit (dengan foto) milik seorang pegawai yang relevan untuk sebuah slip,
+// yaitu yang tanggal mulainya jatuh setelah cut off slip SEBELUMNYA (pegawai yang sama)
+// sampai dengan cut off slip ini sendiri.
+function getSuratSakitUntukSlip(slip) {
+  const cutOffCur = slip.cutOff ? parseDateFlexible(slip.cutOff) : null;
+
+  const cutOffSlipLain = DB.riwayatSlip
+    .filter(x => x.personaliaId === slip.personaliaId && x.id !== slip.id && x.cutOff)
+    .map(x => parseDateFlexible(x.cutOff))
+    .filter(d => d && (!cutOffCur || d < cutOffCur));
+  const prevCutOff = cutOffSlipLain.length ? new Date(Math.max(...cutOffSlipLain.map(d => d.getTime()))) : null;
+
+  return DB.suratSakit.filter(s => {
+    if (s.personaliaId !== slip.personaliaId) return false;
+    const tgl = parseDateFlexible(s.tglMulai);
+    if (!tgl) return false;
+    if (cutOffCur && tgl > cutOffCur) return false;
+    if (prevCutOff && tgl <= prevCutOff) return false;
+    return true;
+  });
+}
+
+function buildCoverHtml(periodeLabel, slips) {
+  const cfg = DB.config;
+  const totalTHP = slips.reduce((a, s) => a + (s.thp || 0), 0);
+  const sekarang = new Date().toLocaleString("id-ID");
+  return `
+  <div class="cetak-page laporan-cover">
+    ${cfg.logoUrl ? `<img class="cover-logo" src="${cfg.logoUrl}" alt="Logo Perusahaan">` : ""}
+    <div class="cover-title">SLIP GAJI</div>
+    <div class="cover-company">${escapeHtml(cfg.namaPerusahaan)}</div>
+    <div class="cover-addr">${escapeHtml(cfg.alamat1)}<br>${escapeHtml(cfg.alamat2)}<br>${escapeHtml(cfg.alamat3)}</div>
+    <div class="cover-periode">PERIODE ${escapeHtml(periodeLabel.toUpperCase())}</div>
+    <table class="cover-info-table">
+      <tr><td>Jumlah Staff</td><td>: ${slips.length} orang</td></tr>
+      <tr><td>Total THP Periode Ini</td><td>: ${formatRupiah(totalTHP)}</td></tr>
+      <tr><td>Dokumen Dibuat</td><td>: ${sekarang}</td></tr>
+    </table>
+    <div class="cover-footer">
+      Dokumen ini berisi slip gaji seluruh staff beserta lampiran rincian absensi dan surat sakit
+      untuk periode ${escapeHtml(periodeLabel)}. Bersifat rahasia — hanya untuk pihak yang berkepentingan.
+    </div>
+  </div>`;
+}
+
+function buildLampiranTabelKategori(kategori, list) {
+  if (!list || list.length === 0) {
+    return `<div class="lampiran-empty">Tidak ada catatan ${KATEGORI_LABEL[kategori].toLowerCase()} pada periode ini.</div>`;
+  }
+  const rows = list.map(item => {
+    const tgl = formatTanggalTampil(item.tanggal);
+    return `<tr><td>${tgl}</td><td>${keteranganRincian(kategori, item)}</td></tr>`;
+  }).join("");
+  return `
+    <table class="lampiran-table">
+      <thead><tr><th>Tanggal</th><th>Keterangan</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function buildLampiranStaffHtml(slip) {
+  const r = slip.rincianAbsensi;
+  const kategoriUrut = ["telat", "lupaAbsen", "mangkir", "dailyReport", "pulangAwal", "cuti"];
+
+  let absensiHtml;
+  if (!r) {
+    absensiHtml = `<div class="lampiran-empty">Rincian harian tidak tersedia untuk slip ini (data berasal dari sheet ringkasan agregat, atau slip dibuat sebelum fitur rincian tersimpan).</div>`;
+  } else {
+    absensiHtml = kategoriUrut.map(kat => `
+        <div class="lampiran-section-title">${KATEGORI_LABEL[kat]}</div>
+        ${buildLampiranTabelKategori(kat, r[kat])}`).join("");
+  }
+
+  const suratSakitList = getSuratSakitUntukSlip(slip);
+  let sakitHtml;
+  if (suratSakitList.length === 0) {
+    sakitHtml = `<div class="lampiran-empty">Tidak ada surat sakit tercatat pada periode ini.</div>`;
+  } else {
+    const rows = suratSakitList.map(s => `
+      <tr>
+        <td>${formatTglIndo(s.tglMulai)}</td>
+        <td>${formatTglIndo(s.tglSelesai)}</td>
+        <td>${s.jumlahHari}</td>
+        <td>${escapeHtml(s.keterangan || "-")}</td>
+      </tr>`).join("");
+    const fotoList = suratSakitList.filter(s => s.fotoUrl);
+    const fotoHtml = fotoList.length
+      ? `<div class="lampiran-foto-row">${fotoList.map(s => `<img src="${s.fotoUrl}" alt="Foto surat sakit ${escapeHtml(s.keterangan || "")}">`).join("")}</div>`
+      : "";
+    sakitHtml = `
+      <table class="lampiran-table">
+        <thead><tr><th>Tgl Mulai</th><th>Tgl Selesai</th><th>Jml Hari</th><th>Keterangan</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${fotoHtml}`;
+  }
+
+  return `
+  <div class="cetak-page lampiran-sheet">
+    <div class="lampiran-head">
+      <div class="tag">LAMPIRAN — RINCIAN ABSENSI &amp; SURAT SAKIT</div>
+      <div class="nama">${escapeHtml(slip.nama)}</div>
+      <div class="sub">${escapeHtml(slip.jabatan || "-")} · Periode ${escapeHtml(slip.periodeLabel)}</div>
+    </div>
+    <div class="lampiran-section-title">RINCIAN ABSENSI</div>
+    ${absensiHtml}
+    <div class="lampiran-section-title">SURAT SAKIT</div>
+    ${sakitHtml}
+  </div>`;
+}
+
+function buatLaporanPeriode() {
+  const sel = document.getElementById("selLaporanPeriode");
+  const periodeLabel = sel.value;
+  if (!periodeLabel) { alert("Belum ada slip yang tersimpan untuk periode manapun. Buat & simpan slip terlebih dahulu di halaman Slip Gaji."); return; }
+
+  const slips = DB.riwayatSlip
+    .filter(s => s.periodeLabel === periodeLabel)
+    .slice()
+    .sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+
+  if (slips.length === 0) { alert("Tidak ada slip untuk periode ini."); return; }
+
+  const coverHtml = buildCoverHtml(periodeLabel, slips);
+  const slipPagesHtml = slips.map(s => `<div class="cetak-page">${buildSlipSheetHtml(s)}</div>`).join("");
+  const lampiranHtml = slips.map(s => buildLampiranStaffHtml(s)).join("");
+
+  document.getElementById("laporanContainer").innerHTML = coverHtml + slipPagesHtml + lampiranHtml;
+  document.getElementById("laporanPreviewPanel").style.display = "block";
+  document.getElementById("laporanInfo").innerHTML =
+    `<p style="color:#16a34a">Laporan siap: ${slips.length} slip gaji + lampiran untuk periode <b>${escapeHtml(periodeLabel)}</b>.</p>`;
+  document.getElementById("laporanPreviewPanel").scrollIntoView({ behavior: "smooth" });
 }
 
 /* ---------------------------------------------------------
@@ -1035,7 +1201,7 @@ function navigateTo(pageKey) {
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === pageKey));
   const titles = {
     dashboard: "Dashboard", personalia: "Personalia", kehadiran: "Import Kehadiran",
-    sakit: "Surat Sakit", slip: "Slip Gaji", riwayat: "Riwayat Slip", pengaturan: "Pengaturan"
+    sakit: "Surat Sakit", slip: "Slip Gaji", riwayat: "Riwayat Slip", laporan: "Laporan Periode", pengaturan: "Pengaturan"
   };
   document.getElementById("pageTitleMobile").textContent = titles[pageKey] || "";
   document.getElementById("sidebar").classList.remove("open");
@@ -1084,6 +1250,7 @@ function renderAll() {
   renderRiwayatTable();
   renderDashboard();
   renderPengaturanForm();
+  populateLaporanPeriodeSelect();
 }
 
 /* ---------------------------------------------------------
@@ -1214,6 +1381,10 @@ function startPayrollApp() {
     if (!btn) return;
     if (btn.dataset.action === "lihat-slip") lihatSlipRiwayat(btn.dataset.id);
   });
+
+  // Laporan Periode
+  document.getElementById("btnBuatLaporan").addEventListener("click", buatLaporanPeriode);
+  document.getElementById("btnPrintLaporan").addEventListener("click", () => window.print());
 
   // Pengaturan
   document.getElementById("btnSimpanPengaturan").addEventListener("click", simpanPengaturan);
