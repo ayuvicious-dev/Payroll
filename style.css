@@ -278,7 +278,7 @@ input,select{font-family:inherit;}
   /* Baris/unit kecil: jangan pernah terpotong menjadi dua bagian di batas halaman */
   .slip-row,.slip-money-row,.rp-cover-meta-row,.cover-info-table tr,
   .lampiran-table tr,.rp-table tr,.data-table tr,
-  .lampiran-foto-row,.calc-item,.lampiran-section-title{
+  .lampiran-foto-card,.calc-item,.lampiran-section-title{
     page-break-inside:avoid;break-inside:avoid;
   }
   /* Judul seksi tidak boleh jadi baris terakhir sendirian di halaman (harus nempel dgn kontennya) */
@@ -372,8 +372,11 @@ input,select{font-family:inherit;}
 .lampiran-table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:6px;}
 .lampiran-table th{text-align:left;background:var(--rp-tint);padding:6px 8px;border-bottom:2px solid var(--rp-line);color:var(--rp-navy);font-weight:700;}
 .lampiran-table td{padding:6px 8px;border-bottom:1px solid var(--rp-line);}
-.lampiran-foto-row{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px;}
-.lampiran-foto-row img{width:74px;height:74px;object-fit:cover;border-radius:6px;border:1px solid var(--rp-line);}
+.lampiran-foto-row{display:flex;flex-direction:column;align-items:center;gap:18px;margin:12px 0 16px;}
+.lampiran-foto-card{width:100%;max-width:420px;text-align:center;}
+.lampiran-foto-caption{font-size:11.5px;font-weight:700;color:var(--rp-navy);margin-bottom:8px;}
+.lampiran-foto-card img{display:block;width:100%;max-height:480px;object-fit:contain;border-radius:8px;
+  border:1px solid var(--rp-line);background:#fff;margin:0 auto;}
 
 /* LOGIN OVERLAY */
 .login-overlay{

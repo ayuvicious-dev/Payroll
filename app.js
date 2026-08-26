@@ -1182,7 +1182,11 @@ function buildLampiranStaffHtml(slip) {
       </tr>`).join("");
     const fotoList = suratSakitList.filter(s => s.fotoUrl);
     const fotoHtml = fotoList.length
-      ? `<div class="lampiran-foto-row">${fotoList.map(s => `<img src="${s.fotoUrl}" alt="Foto surat sakit ${escapeHtml(s.keterangan || "")}">`).join("")}</div>`
+      ? `<div class="lampiran-foto-row">${fotoList.map(s => `
+          <div class="lampiran-foto-card">
+            <div class="lampiran-foto-caption">Tgl Mulai: ${formatTglIndo(s.tglMulai)}</div>
+            <img src="${s.fotoUrl}" alt="Foto surat sakit ${escapeHtml(s.keterangan || "")}">
+          </div>`).join("")}</div>`
       : "";
     sakitHtml = `
       <table class="lampiran-table">
