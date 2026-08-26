@@ -236,7 +236,7 @@ input,select{font-family:inherit;}
   .slip-sign{grid-template-columns:1fr;}
 }
 
-@page{ margin:12mm; }
+@page{ size:A4 portrait; margin:12mm; }
 
 @media print{
   .sidebar,.topbar,.slip-actions,.page-head,.panel .btn-primary,.no-print{display:none !important;}
@@ -245,8 +245,32 @@ input,select{font-family:inherit;}
   body{background:#fff;}
   #slipPreviewPanel{border:none;}
   #laporanPreviewPanel{border:none;}
-  .cetak-page{page-break-after:always;}
-  .cetak-page:last-child{page-break-after:auto;}
+
+  /* Pastikan warna latar (navy/gold) ikut tercetak, bukan dihilangkan browser */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;}
+
+  /* Setiap .cetak-page = satu halaman, mulai di halaman baru & tidak digabung dgn halaman lain */
+  .cetak-page{page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;}
+  .cetak-page:last-child{page-break-after:auto;break-after:auto;}
+
+  /* rp-cover pakai tinggi tetap setara 1 halaman A4 (bukan 100vh) supaya tidak meluber ke halaman ke-2 */
+  .rp-cover{min-height:0 !important;height:273mm;}
+
+  /* Blok dokumen inti: jangan sampai terpotong di tengah, dorong ke halaman berikutnya jika perlu */
+  .slip-sheet,.lampiran-sheet,.lampiran-head{page-break-inside:avoid;break-inside:avoid;}
+
+  /* Baris/unit kecil: jangan pernah terpotong menjadi dua bagian di batas halaman */
+  .slip-row,.slip-money-row,.rp-cover-meta-row,.cover-info-table tr,
+  .lampiran-table tr,.rp-table tr,.data-table tr,
+  .lampiran-foto-row,.calc-item,.lampiran-section-title{
+    page-break-inside:avoid;break-inside:avoid;
+  }
+  /* Judul seksi tidak boleh jadi baris terakhir sendirian di halaman (harus nempel dgn kontennya) */
+  .lampiran-section-title,.rp-page-head{page-break-after:avoid;break-after:avoid;}
+
+  /* Kalau tabel terpaksa lanjut ke halaman berikutnya, ulangi header & footer-nya */
+  .lampiran-table thead,.rp-table thead,.data-table thead,.cover-info-table thead{display:table-header-group;}
+  .rp-table tfoot{display:table-footer-group;}
 }
 
 /* ===========================================================
