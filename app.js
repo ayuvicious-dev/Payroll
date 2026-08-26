@@ -32,10 +32,14 @@ function loadDB() {
       parsed.suratSakit = parsed.suratSakit || [];
       parsed.riwayatSlip = parsed.riwayatSlip || [];
       parsed.kehadiranImport = parsed.kehadiranImport || {}; // key: personaliaId -> {periode data}
+      // Daftar ID slip yang sudah pernah dihapus ("tombstone") — dipakai supaya
+      // slip yang dihapus tidak bisa "hidup lagi" akibat sync dari perangkat
+      // lain yang datanya belum ter-update (lihat firebase-init.js).
+      parsed.deletedSlipIds = parsed.deletedSlipIds || [];
       return parsed;
     }
   } catch (e) { console.warn("Gagal memuat data lokal", e); }
-  return { config: { ...DEFAULT_CONFIG }, personalia: [], suratSakit: [], riwayatSlip: [], kehadiranImport: {} };
+  return { config: { ...DEFAULT_CONFIG }, personalia: [], suratSakit: [], riwayatSlip: [], kehadiranImport: {}, deletedSlipIds: [] };
 }
 
 function saveDB() {
@@ -558,11 +562,18 @@ function hitungRekapDariHarian(hari) {
         }
       }
 
-      const drVal = h.dailyReport || "";
-      const isDailyReportOnTime = /on[\s-]?time/i.test(drVal);
-      if (!isDailyReportOnTime) {
-        jumlahTidakDailyReport += 1;
-        rincianDailyReport.push({ tanggal: h.tanggal, dailyReport: drVal || "Tidak diisi (off-time)" });
+      // Hari ketidakhadiran (sakit, cuti tahunan, cuti bersama, bukan hari
+      // kerja, atau mangkir) wajar tidak punya isi Daily Report — kolom ini
+      // kosong karena memang tidak ada aktivitas kerja, BUKAN karena
+      // pegawai lalai. Jadi jangan dihitung sebagai "tidak on-time"/off-time.
+      const isKetidakhadiran = isSakit || isCutiTahunan || isCutiBersama || isBukanHariKerja || isTidakHadir;
+      if (!isKetidakhadiran) {
+        const drVal = h.dailyReport || "";
+        const isDailyReportOnTime = /on[\s-]?time/i.test(drVal);
+        if (!isDailyReportOnTime) {
+          jumlahTidakDailyReport += 1;
+          rincianDailyReport.push({ tanggal: h.tanggal, dailyReport: drVal || "Tidak diisi (off-time)" });
+        }
       }
     }
   });
@@ -967,11 +978,25 @@ function hapusSlipRiwayat(id) {
   const s = DB.riwayatSlip.find(x => x.id === id);
   if (!s) return;
   if (!confirm(`Hapus slip "${s.nama}" periode ${s.periodeLabel} dari riwayat? Tindakan ini tidak bisa dibatalkan.`)) return;
+
   DB.riwayatSlip = DB.riwayatSlip.filter(x => x.id !== id);
+  // Catat sebagai tombstone: memastikan slip ini tidak muncul lagi (baik di
+  // Riwayat maupun di Dashboard) meski ada perangkat/tab lain yang sync
+  // belakangan dengan data lama.
+  DB.deletedSlipIds = DB.deletedSlipIds || [];
+  if (!DB.deletedSlipIds.includes(id)) DB.deletedSlipIds.push(id);
+
   saveDB();
   renderRiwayatTable();
   renderDashboard();
   populateLaporanPeriodeSelect();
+
+  // Kirim langsung ke cloud (bukan menunggu debounce 500ms) supaya penghapusan
+  // ini segera "menang" dan tidak tertimpa balik oleh write lain yang masih
+  // membawa data lama.
+  if (typeof window.flushDBSave === "function") {
+    window.flushDBSave().catch(() => { /* tetap tersimpan lokal; akan sync lagi saat online */ });
+  }
 }
 
 /* ---------------------------------------------------------
@@ -1371,6 +1396,7 @@ function importDataFile(file) {
       DB.suratSakit = DB.suratSakit || [];
       DB.riwayatSlip = DB.riwayatSlip || [];
       DB.kehadiranImport = DB.kehadiranImport || {};
+      DB.deletedSlipIds = DB.deletedSlipIds || [];
       saveDB();
       renderAll();
       alert("Data berhasil diimpor.");
@@ -1413,6 +1439,31 @@ function startPayrollApp() {
   document.getElementById("btnCollapseSidebar").addEventListener("click", () => {
     document.getElementById("sidebar").classList.toggle("collapsed");
   });
+
+  // Tombol sinkronisasi manual di top-bar (mobile)
+  const btnSyncTopbar = document.getElementById("btnSyncTopbar");
+  if (btnSyncTopbar) {
+    btnSyncTopbar.addEventListener("click", async () => {
+      if (btnSyncTopbar.classList.contains("spinning")) return;
+      btnSyncTopbar.classList.add("spinning");
+      btnSyncTopbar.disabled = true;
+      try {
+        if (typeof window.manualSync === "function") {
+          const hasil = await window.manualSync();
+          if (!hasil || !hasil.ok) {
+            const indi = document.getElementById("syncIndicatorTopbar");
+            if (indi) {
+              indi.textContent = hasil && hasil.reason === "offline" ? "⚠ Belum login" : "⚠ Gagal sinkron";
+              indi.className = "sync-indicator offline";
+            }
+          }
+        }
+      } finally {
+        btnSyncTopbar.classList.remove("spinning");
+        btnSyncTopbar.disabled = false;
+      }
+    });
+  }
 
   // Personalia
   document.getElementById("btnTambahPersonalia").addEventListener("click", () => openModalPersonalia(null));

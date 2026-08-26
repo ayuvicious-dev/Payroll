@@ -134,15 +134,30 @@ onAuthStateChanged(auth, (user) => {
   unsubscribeSnapshot = onSnapshot(
     ref,
     (snap) => {
+      let perluPerbaikanBalik = false;
       if (snap.exists()) {
         const data = snap.data();
         suppressNextAutoSave = true; // ini data DARI server, jangan ditulis balik
+
+        // Gabungkan daftar "tombstone" slip yang sudah dihapus (lokal + server)
+        // supaya slip yang sudah dihapus tidak bisa muncul lagi walau data
+        // yang datang dari server masih membawanya (mis. tertimpa oleh
+        // perangkat/tab lain yang belum sempat sinkron saat penghapusan terjadi).
+        const deletedLocal = window.DB.deletedSlipIds || [];
+        const deletedRemote = data.deletedSlipIds || [];
+        const deletedGabungan = Array.from(new Set([...deletedLocal, ...deletedRemote]));
+
+        const riwayatRemote = data.riwayatSlip || [];
+        const riwayatBersih = riwayatRemote.filter((s) => !deletedGabungan.includes(s.id));
+        perluPerbaikanBalik = riwayatBersih.length !== riwayatRemote.length;
+
         Object.assign(window.DB, {
           config: data.config || window.DB.config,
           personalia: data.personalia || [],
           suratSakit: data.suratSakit || [],
-          riwayatSlip: data.riwayatSlip || [],
-          kehadiranImport: data.kehadiranImport || {}
+          riwayatSlip: riwayatBersih,
+          kehadiranImport: data.kehadiranImport || {},
+          deletedSlipIds: deletedGabungan
         });
         localStorage.setItem("payrollAppData_v1", JSON.stringify(window.DB));
       }
@@ -150,6 +165,13 @@ onAuthStateChanged(auth, (user) => {
       showApp();
       window.startPayrollApp();
       updateSyncIndicator("online");
+
+      if (perluPerbaikanBalik) {
+        // Data di server masih membawa slip yang sudah dihapus — kirim balik
+        // versi yang sudah bersih supaya semua perangkat konsisten.
+        suppressNextAutoSave = false;
+        setTimeout(() => { if (window.flushDBSave) window.flushDBSave(); }, 0);
+      }
     },
     (err) => {
       console.error("Firestore sync error:", err);
@@ -191,11 +213,27 @@ window.flushDBSave = function () {
   return doFirestoreSave();
 };
 
+// Dipanggil dari tombol sinkronisasi manual di top-bar (app.js). Mengembalikan
+// { ok: true } jika berhasil, atau { ok: false, reason } jika gagal/tidak login.
+window.manualSync = async function () {
+  if (!auth.currentUser) return { ok: false, reason: "offline" };
+  try {
+    await doFirestoreSave();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: "error" };
+  }
+};
+
 function updateSyncIndicator(status) {
-  const indicator = el("syncIndicator");
-  if (!indicator) return;
-  indicator.textContent = status === "online" ? "☁ Tersinkron" : "⚠ Offline (data lokal)";
-  indicator.className = "sync-indicator " + status;
+  const waktu = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  const teks = status === "online" ? ("☁ Tersinkron " + waktu) : "⚠ Offline (data lokal)";
+  ["syncIndicator", "syncIndicatorTopbar"].forEach((id) => {
+    const indicator = el(id);
+    if (!indicator) return;
+    indicator.textContent = teks;
+    indicator.className = "sync-indicator " + status;
+  });
 }
 
 window.addEventListener("online", () => updateSyncIndicator("online"));
