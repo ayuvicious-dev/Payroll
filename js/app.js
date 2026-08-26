@@ -251,12 +251,16 @@ function renderSakitTable() {
   DB.suratSakit.slice().reverse().forEach(s => {
     const p = getPersonaliaById(s.personaliaId);
     const tr = document.createElement("tr");
+    const fotoCell = s.fotoUrl
+      ? `<img src="${s.fotoUrl}" class="sakit-thumb" data-action="lihat-foto-sakit" data-id="${s.id}" alt="Foto surat sakit">`
+      : "-";
     tr.innerHTML = `
       <td>${p ? escapeHtml(p.nama) : "(dihapus)"}</td>
       <td>${formatTglIndo(s.tglMulai)}</td>
       <td>${formatTglIndo(s.tglSelesai)}</td>
       <td>${s.jumlahHari}</td>
       <td>${escapeHtml(s.keterangan || "-")}</td>
+      <td>${fotoCell}</td>
       <td><button class="btn-danger" data-action="hapus-sakit" data-id="${s.id}">Hapus</button></td>`;
     tbody.appendChild(tr);
   });
@@ -267,6 +271,39 @@ function hitungJumlahHari(mulai, selesai) {
   if (!a || !b) return 0;
   const diff = Math.round((b - a) / 86400000) + 1;
   return diff > 0 ? diff : 0;
+}
+
+/* Kompres foto di sisi browser sebelum disimpan sebagai base64 di Firestore
+   (dokumen Firestore dibatasi ~1MB, jadi foto WAJIB dikecilkan dulu). */
+function compressImageToBase64(file, maxDim = 900, quality = 0.6) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Gagal membaca file"));
+    reader.onload = (e) => {
+      img.onerror = () => reject(new Error("File bukan gambar yang valid"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+let __sakitFotoBase64 = null;
+
+function resetFormFotoSakit() {
+  __sakitFotoBase64 = null;
+  document.getElementById("fSakitFoto").value = "";
+  document.getElementById("fSakitFotoPreviewWrap").style.display = "none";
+  document.getElementById("fSakitFotoPreview").src = "";
 }
 
 function simpanSuratSakit() {
@@ -281,7 +318,8 @@ function simpanSuratSakit() {
     tglMulai,
     tglSelesai,
     jumlahHari,
-    keterangan: document.getElementById("fSakitKeterangan").value.trim()
+    keterangan: document.getElementById("fSakitKeterangan").value.trim(),
+    fotoUrl: __sakitFotoBase64 || null
   };
   DB.suratSakit.push(data);
   // otomatis tambah ke sakit terpakai personalia
@@ -293,6 +331,7 @@ function simpanSuratSakit() {
   }
   saveDB();
   renderSakitTable();
+  resetFormFotoSakit();
   document.getElementById("modalSakit").classList.remove("active");
 }
 
@@ -924,14 +963,42 @@ function startPayrollApp() {
     document.getElementById("fSakitKeterangan").value = "";
     document.getElementById("fSakitMulai").value = "";
     document.getElementById("fSakitSelesai").value = "";
+    resetFormFotoSakit();
     document.getElementById("modalSakit").classList.add("active");
   });
-  document.getElementById("btnBatalSakit").addEventListener("click", () => document.getElementById("modalSakit").classList.remove("active"));
+  document.getElementById("btnBatalSakit").addEventListener("click", () => {
+    document.getElementById("modalSakit").classList.remove("active");
+    resetFormFotoSakit();
+  });
   document.getElementById("btnSimpanSakit").addEventListener("click", simpanSuratSakit);
+  document.getElementById("fSakitFoto").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { alert("File harus berupa gambar/foto."); e.target.value = ""; return; }
+    try {
+      __sakitFotoBase64 = await compressImageToBase64(file);
+      document.getElementById("fSakitFotoPreview").src = __sakitFotoBase64;
+      document.getElementById("fSakitFotoPreviewWrap").style.display = "flex";
+    } catch (err) {
+      alert("Gagal memproses foto: " + err.message);
+      resetFormFotoSakit();
+    }
+  });
+  document.getElementById("btnHapusFotoSakit").addEventListener("click", resetFormFotoSakit);
   document.querySelector("#tblSakit tbody").addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
+    const btn = e.target.closest("[data-action]");
     if (!btn) return;
     if (btn.dataset.action === "hapus-sakit") hapusSuratSakit(btn.dataset.id);
+    if (btn.dataset.action === "lihat-foto-sakit") {
+      const s = DB.suratSakit.find(x => x.id === btn.dataset.id);
+      if (s && s.fotoUrl) {
+        document.getElementById("imgLihatFotoBesar").src = s.fotoUrl;
+        document.getElementById("modalLihatFoto").classList.add("active");
+      }
+    }
+  });
+  document.getElementById("btnTutupLihatFoto").addEventListener("click", () => {
+    document.getElementById("modalLihatFoto").classList.remove("active");
   });
 
   // Import Kehadiran

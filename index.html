@@ -158,7 +158,7 @@
         <div class="table-wrap">
           <table class="data-table" id="tblSakit">
             <thead>
-              <tr><th>Nama</th><th>Tgl Mulai</th><th>Tgl Selesai</th><th>Jumlah Hari</th><th>Keterangan</th><th>Aksi</th></tr>
+              <tr><th>Nama</th><th>Tgl Mulai</th><th>Tgl Selesai</th><th>Jumlah Hari</th><th>Keterangan</th><th>Foto</th><th>Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -288,10 +288,25 @@
       <label>Tanggal Mulai<input type="date" id="fSakitMulai"></label>
       <label>Tanggal Selesai<input type="date" id="fSakitSelesai"></label>
     </div>
+    <label>Foto Surat Sakit (opsional)
+      <input type="file" id="fSakitFoto" accept="image/*" capture="environment">
+    </label>
+    <div id="fSakitFotoPreviewWrap" style="display:none">
+      <img id="fSakitFotoPreview" alt="Preview foto surat sakit">
+      <button type="button" class="btn-ghost small" id="btnHapusFotoSakit">✕ Hapus foto</button>
+    </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="btnBatalSakit">Batal</button>
       <button class="btn-primary" id="btnSimpanSakit">Simpan</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: Lihat Foto Surat Sakit -->
+<div class="modal-overlay" id="modalLihatFoto">
+  <div class="modal modal-foto">
+    <button type="button" class="btn-ghost small modal-foto-close" id="btnTutupLihatFoto">✕ Tutup</button>
+    <img id="imgLihatFotoBesar" alt="Foto surat sakit">
   </div>
 </div>
 
