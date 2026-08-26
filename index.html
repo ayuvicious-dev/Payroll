@@ -17,25 +17,46 @@
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-mark">PG</div>
-      <div class="brand-text">
-        <strong>Penggajian</strong>
+      <div class="brand-mark">🧾</div>
+    </div>
+    <div class="brand-title">
+      <strong>PAYROLL<span>APP</span></strong>
+      <span class="brand-sub">HR &amp; PENGGAJIAN</span>
+    </div>
+
+    <div class="account-box">
+      <div class="account-label">PERUSAHAAN AKTIF</div>
+      <div class="account-row">
+        <span class="account-icon">🏢</span>
         <span id="companyNameLabel">PT. Kamil Group Indonesia</span>
+        <span class="account-caret">⌄</span>
       </div>
     </div>
+
     <nav class="nav">
-      <button class="nav-item active" data-page="dashboard">📊 Dashboard</button>
-      <button class="nav-item" data-page="personalia">👤 Personalia</button>
-      <button class="nav-item" data-page="kehadiran">🗂️ Import Kehadiran</button>
-      <button class="nav-item" data-page="sakit">🩺 Surat Sakit</button>
-      <button class="nav-item" data-page="slip">🧾 Slip Gaji</button>
-      <button class="nav-item" data-page="riwayat">📜 Riwayat Slip</button>
-      <button class="nav-item" data-page="pengaturan">⚙️ Pengaturan</button>
+      <div class="nav-group-label">RINGKASAN</div>
+      <button class="nav-item active" data-page="dashboard"><span class="nav-icon">▦</span>Dashboard</button>
+
+      <div class="nav-group-label">PERSONALIA</div>
+      <button class="nav-item" data-page="personalia"><span class="nav-icon">◉</span>Personalia</button>
+      <button class="nav-item" data-page="sakit"><span class="nav-icon">✚</span>Surat Sakit</button>
+
+      <div class="nav-group-label">KEHADIRAN</div>
+      <button class="nav-item" data-page="kehadiran"><span class="nav-icon">▤</span>Import Kehadiran</button>
+
+      <div class="nav-group-label">PENGGAJIAN</div>
+      <button class="nav-item" data-page="slip"><span class="nav-icon">▧</span>Slip Gaji</button>
+      <button class="nav-item" data-page="riwayat"><span class="nav-icon">▥</span>Riwayat Slip</button>
+
+      <div class="nav-group-label">LAINNYA</div>
+      <button class="nav-item" data-page="pengaturan"><span class="nav-icon">⚙</span>Pengaturan</button>
     </nav>
+
     <div class="sidebar-footer">
       <button id="btnExportData" class="btn-ghost small">⬇ Ekspor Data</button>
       <button id="btnImportData" class="btn-ghost small">⬆ Impor Data</button>
       <input type="file" id="fileImportData" accept=".json" hidden>
+      <button class="collapse-btn" id="btnCollapseSidebar" title="Ciutkan sidebar">◀</button>
     </div>
   </aside>
 
