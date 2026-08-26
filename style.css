@@ -144,6 +144,8 @@ input,select{font-family:inherit;}
 .btn-ghost.small{padding:7px 10px;font-size:12px;}
 .btn-danger{background:#fee2e2;color:var(--danger);border:none;padding:6px 10px;border-radius:7px;font-size:12px;}
 .btn-icon{background:#eef2ff;color:var(--accent);border:none;padding:6px 10px;border-radius:7px;font-size:12px;margin-right:4px;}
+.btn-icon:disabled{opacity:.35;cursor:not-allowed;}
+.riwayat-actions .btn-icon{padding:6px 9px;}
 
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;}
 .card{background:var(--panel);border-radius:var(--radius);padding:18px;border:1px solid var(--border);}

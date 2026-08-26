@@ -989,19 +989,41 @@ function simpanSlipKeRiwayat() {
 function renderRiwayatTable() {
   const tbody = document.querySelector("#tblRiwayat tbody");
   tbody.innerHTML = "";
-  DB.riwayatSlip.slice().reverse().forEach(s => {
+  // Urutan tampilan di tabel ini = urutan yang dipakai saat generate Laporan
+  // Periode (per periode). Gunakan tombol ▲▼ untuk mengatur posisi staff.
+  const list = DB.riwayatSlip.slice().reverse();
+  list.forEach((s, i) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(s.nama)}</td>
       <td>${escapeHtml(s.periodeLabel)}</td>
       <td>${formatRupiah(s.thp)}</td>
       <td>${new Date(s.dibuatPada).toLocaleString("id-ID")}</td>
-      <td>
+      <td class="riwayat-actions">
+        <button class="btn-icon" data-action="naik-slip" data-id="${s.id}" title="Pindah urutan ke atas" ${i === 0 ? "disabled" : ""}>▲</button>
+        <button class="btn-icon" data-action="turun-slip" data-id="${s.id}" title="Pindah urutan ke bawah" ${i === list.length - 1 ? "disabled" : ""}>▼</button>
         <button class="btn-icon" data-action="lihat-slip" data-id="${s.id}">Lihat</button>
         <button class="btn-danger" data-action="hapus-slip" data-id="${s.id}">Hapus</button>
       </td>`;
     tbody.appendChild(tr);
   });
+}
+
+function pindahUrutanRiwayat(id, arah) {
+  // Bekerja di atas urutan TAMPILAN (sama seperti yang terlihat di tabel
+  // Riwayat), lalu simpan balik ke DB.riwayatSlip dalam urutan penyimpanan
+  // (kebalikan dari tampilan).
+  const list = DB.riwayatSlip.slice().reverse();
+  const idx = list.findIndex(s => s.id === id);
+  if (idx === -1) return;
+  const target = arah === "naik" ? idx - 1 : idx + 1;
+  if (target < 0 || target >= list.length) return;
+  const tmp = list[idx];
+  list[idx] = list[target];
+  list[target] = tmp;
+  DB.riwayatSlip = list.slice().reverse();
+  saveDB();
+  renderRiwayatTable();
 }
 
 function lihatSlipRiwayat(id) {
@@ -1283,10 +1305,12 @@ function buatLaporanPeriode() {
   const periodeLabel = sel.value;
   if (!periodeLabel) { alert("Belum ada slip yang tersimpan untuk periode manapun. Buat & simpan slip terlebih dahulu di halaman Slip Gaji."); return; }
 
+  // Urutan staff pada laporan mengikuti urutan yang diatur di halaman
+  // Riwayat Slip (tombol ▲▼), bukan lagi diurutkan otomatis berdasarkan abjad.
   const slips = DB.riwayatSlip
-    .filter(s => s.periodeLabel === periodeLabel)
     .slice()
-    .sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+    .reverse()
+    .filter(s => s.periodeLabel === periodeLabel);
 
   if (slips.length === 0) { alert("Tidak ada slip untuk periode ini."); return; }
 
@@ -1609,6 +1633,8 @@ function startPayrollApp() {
     if (!btn) return;
     if (btn.dataset.action === "lihat-slip") lihatSlipRiwayat(btn.dataset.id);
     if (btn.dataset.action === "hapus-slip") hapusSlipRiwayat(btn.dataset.id);
+    if (btn.dataset.action === "naik-slip") pindahUrutanRiwayat(btn.dataset.id, "naik");
+    if (btn.dataset.action === "turun-slip") pindahUrutanRiwayat(btn.dataset.id, "turun");
   });
 
   // Laporan Periode
