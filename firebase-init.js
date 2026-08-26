@@ -167,14 +167,28 @@ window.onDBSaved = function () {
   if (!auth.currentUser) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    const ref = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
-    setDoc(ref, { ...window.DB, updatedAt: serverTimestamp(), updatedBy: auth.currentUser.email })
-      .then(() => updateSyncIndicator("online"))
-      .catch((err) => {
-        console.error("Gagal sync ke Firestore:", err);
-        updateSyncIndicator("offline");
-      });
+    doFirestoreSave();
   }, 500);
+};
+
+function doFirestoreSave() {
+  if (!auth.currentUser) return Promise.resolve();
+  const ref = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
+  return setDoc(ref, { ...window.DB, updatedAt: serverTimestamp(), updatedBy: auth.currentUser.email })
+    .then(() => updateSyncIndicator("online"))
+    .catch((err) => {
+      console.error("Gagal sync ke Firestore:", err);
+      updateSyncIndicator("offline");
+      throw err;
+    });
+}
+
+// Dipanggil dari app.js untuk aksi kritikal (mis. Simpan Pengaturan) supaya
+// data langsung terkirim ke Firestore TANPA menunggu debounce 500ms —
+// mencegah data lama menimpa balik data baru jika user refresh terlalu cepat.
+window.flushDBSave = function () {
+  clearTimeout(saveTimer);
+  return doFirestoreSave();
 };
 
 function updateSyncIndicator(status) {

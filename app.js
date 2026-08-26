@@ -990,7 +990,7 @@ function renderPengaturanForm() {
   }
 }
 
-function simpanPengaturan() {
+async function simpanPengaturan() {
   DB.config = {
     namaPerusahaan: document.getElementById("cfgNamaPerusahaan").value,
     alamat1: document.getElementById("cfgAlamat1").value,
@@ -1006,7 +1006,22 @@ function simpanPengaturan() {
   };
   saveDB();
   document.getElementById("companyNameLabel").textContent = DB.config.namaPerusahaan;
-  alert("Pengaturan disimpan.");
+
+  const btn = document.getElementById("btnSimpanPengaturan");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Menyimpan...";
+  try {
+    // Kirim langsung ke Firestore (bukan lewat debounce) supaya data pasti
+    // sudah tersimpan di cloud sebelum user menutup/refresh halaman.
+    if (typeof window.flushDBSave === "function") await window.flushDBSave();
+    alert("Pengaturan disimpan.");
+  } catch (err) {
+    alert("Pengaturan disimpan secara lokal, tapi gagal sync ke cloud (cek koneksi internet). Coba simpan lagi saat online.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
 }
 
 /* ---------------------------------------------------------
