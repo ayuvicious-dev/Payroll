@@ -1193,7 +1193,8 @@ function buildLampiranStaffHtml(slip) {
   }
 
   return `
-  <div class="cetak-page lampiran-sheet">
+  <div class="cetak-page">
+  <div class="lampiran-sheet">
     <div class="lampiran-head">
       <div class="tag">LAMPIRAN — RINCIAN ABSENSI &amp; SURAT SAKIT</div>
       <div class="nama">${escapeHtml(slip.nama)}</div>
@@ -1205,6 +1206,7 @@ function buildLampiranStaffHtml(slip) {
     ${absensiHtml}
     <div class="lampiran-section-title">SURAT SAKIT</div>
     ${sakitHtml}
+  </div>
   </div>`;
 }
 
