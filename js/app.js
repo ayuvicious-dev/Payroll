@@ -18,6 +18,7 @@ const DEFAULT_CONFIG = {
 };
 
 let DB = loadDB();
+window.DB = DB; // alias supaya bisa diakses dari firebase-init.js (module terpisah)
 
 function loadDB() {
   try {
@@ -37,6 +38,8 @@ function loadDB() {
 
 function saveDB() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+  // Hook ke Firestore (didefinisikan di firebase-init.js setelah user login)
+  if (typeof window.onDBSaved === "function") window.onDBSaved();
 }
 
 function uid() {
@@ -855,6 +858,7 @@ function importDataFile(file) {
       const parsed = JSON.parse(e.target.result);
       if (!confirm("Impor data ini akan menimpa seluruh data yang ada saat ini. Lanjutkan?")) return;
       DB = parsed;
+      window.DB = DB;
       DB.config = Object.assign({}, DEFAULT_CONFIG, DB.config || {});
       DB.personalia = DB.personalia || [];
       DB.suratSakit = DB.suratSakit || [];
@@ -881,8 +885,15 @@ function renderAll() {
 
 /* ---------------------------------------------------------
    EVENT BINDINGS
+   (dipanggil oleh firebase-init.js setelah login berhasil,
+   bukan langsung saat DOMContentLoaded, supaya tidak bind
+   event 2x kalau user logout lalu login lagi)
 --------------------------------------------------------- */
-document.addEventListener("DOMContentLoaded", () => {
+let __payrollAppStarted = false;
+function startPayrollApp() {
+  if (__payrollAppStarted) { renderAll(); return; }
+  __payrollAppStarted = true;
+
   renderAll();
 
   document.querySelectorAll(".nav-item").forEach(btn => {
@@ -980,4 +991,5 @@ document.addEventListener("DOMContentLoaded", () => {
       navigator.serviceWorker.register("./service-worker.js").catch(err => console.warn("SW gagal:", err));
     });
   }
-});
+}
+window.startPayrollApp = startPayrollApp;

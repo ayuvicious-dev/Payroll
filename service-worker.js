@@ -1,10 +1,11 @@
-const CACHE_NAME = "penggajian-cache-v1";
+const CACHE_NAME = "penggajian-cache-v2";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
   "./manifest.json",
   "./css/style.css",
   "./js/app.js",
+  "./js/firebase-init.js",
   "./js/xlsx.full.min.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png"

@@ -12,7 +12,25 @@
 </head>
 <body>
 
-<div class="app-shell">
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-brand">🧾 PAYROLL<span>APP</span></div>
+    <p class="login-sub">Masuk untuk mengakses data penggajian</p>
+    <div class="login-message" id="loginMessage" style="display:none"></div>
+    <label>Email
+      <input type="email" id="loginEmail" autocomplete="username" placeholder="nama@perusahaan.com">
+    </label>
+    <label>Password
+      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••">
+    </label>
+    <button class="btn-primary" id="btnLogin">Masuk</button>
+    <button class="btn-ghost small" id="btnResetPassword">Lupa password?</button>
+    <p class="login-hint">Belum punya akun? Hubungi admin untuk dibuatkan.</p>
+  </div>
+</div>
+
+<div class="app-shell" id="appRoot" style="display:none">
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
@@ -53,9 +71,14 @@
     </nav>
 
     <div class="sidebar-footer">
+      <div class="user-row">
+        <span id="userEmailLabel" class="user-email"></span>
+        <span id="syncIndicator" class="sync-indicator"></span>
+      </div>
       <button id="btnExportData" class="btn-ghost small">⬇ Ekspor Data</button>
       <button id="btnImportData" class="btn-ghost small">⬆ Impor Data</button>
       <input type="file" id="fileImportData" accept=".json" hidden>
+      <button id="btnLogout" class="btn-ghost small">⎋ Keluar</button>
       <button class="collapse-btn" id="btnCollapseSidebar" title="Ciutkan sidebar">◀</button>
     </div>
   </aside>
@@ -228,6 +251,7 @@
 
   </main>
 </div>
+<!-- /#appRoot -->
 
 <!-- MODAL: Tambah/Edit Personalia -->
 <div class="modal-overlay" id="modalPersonalia">
@@ -273,5 +297,6 @@
 
 <script src="./js/xlsx.full.min.js"></script>
 <script src="./js/app.js"></script>
+<script type="module" src="./js/firebase-init.js"></script>
 </body>
 </html>

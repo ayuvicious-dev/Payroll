@@ -73,6 +73,12 @@ input,select{font-family:inherit;}
 .nav-item:hover{background:var(--sb-card);}
 .nav-item.active{background:var(--sb-card);color:#f6ac82;box-shadow:inset 0 0 0 1px var(--sb-border);}
 
+.user-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 2px 6px;}
+.user-email{font-size:11px;color:var(--sb-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sync-indicator{font-size:10px;white-space:nowrap;color:var(--sb-text-faint);}
+.sync-indicator.online{color:#5fbf7a;}
+.sync-indicator.offline{color:#e2a53f;}
+
 .sidebar-footer{display:flex;flex-direction:column;gap:8px;padding-top:14px;margin-top:10px;border-top:1px solid var(--sb-border);}
 .sidebar-footer .btn-ghost.small{
   background:var(--sb-card);color:#e7ded8;border:1px solid var(--sb-border);
@@ -193,3 +199,29 @@ input,select{font-family:inherit;}
   body{background:#fff;}
   #slipPreviewPanel{border:none;}
 }
+
+/* LOGIN OVERLAY */
+.login-overlay{
+  position:fixed;inset:0;z-index:200;background:var(--sb-bg);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.login-box{
+  width:100%;max-width:360px;background:var(--sb-card);border:1px solid var(--sb-border);
+  border-radius:16px;padding:32px 28px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+.login-brand{font-size:18px;font-weight:800;letter-spacing:.5px;color:#f2ece7;text-align:center;}
+.login-brand span{color:var(--sb-orange);}
+.login-sub{margin:0 0 8px;font-size:13px;color:var(--sb-text-muted);text-align:center;}
+.login-box label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--sb-text-muted);}
+.login-box input{
+  padding:10px 12px;border-radius:8px;border:1px solid var(--sb-border);
+  background:var(--sb-bg-soft);color:#f2ece7;font-size:14px;
+}
+.login-box input:focus{outline:none;border-color:var(--sb-orange);}
+.login-box .btn-primary{margin-top:6px;}
+.login-box .btn-ghost.small{align-self:center;color:var(--sb-text-muted);}
+.login-hint{margin:8px 0 0;font-size:11px;color:var(--sb-text-faint);text-align:center;}
+.login-message{font-size:12px;padding:8px 10px;border-radius:8px;}
+.login-message.error{background:#3a1f1f;color:#f3a5a5;}
+.login-message.success{background:#1f3a25;color:#8fe0a5;}
