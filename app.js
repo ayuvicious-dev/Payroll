@@ -657,8 +657,9 @@ function muatDanHitungSlip() {
   const p = getPersonaliaById(personaliaId);
   if (!p) { alert("Pilih pegawai terlebih dahulu"); return; }
 
+  const tanpaAbsensi = document.getElementById("chkTanpaAbsensi").checked;
   const rekap = DB.kehadiranImport[personaliaId];
-  if (!rekap) {
+  if (!tanpaAbsensi && !rekap) {
     if (!confirm("Belum ada data kehadiran yang diimpor untuk pegawai ini. Lanjutkan tanpa perhitungan otomatis potongan kehadiran?")) return;
   }
   const cfg = DB.config;
@@ -666,13 +667,14 @@ function muatDanHitungSlip() {
   const perJam = gajiPokok / cfg.hariKerjaPerBulan / cfg.jamKerjaPerHari;
   const perHari = gajiPokok / cfg.hariKerjaPerBulan;
 
-  const r = rekap || { jamTelatTotal: 0, jamLupaAbsenTotal: 0, hariMangkir: 0, jamPulangAwalTotal: 0, jumlahTidakDailyReport: 0, jumlahSakit: 0, jumlahCutiTahunan: 0 };
+  const rKosong = { jamTelatTotal: 0, jamLupaAbsenTotal: 0, hariMangkir: 0, jamPulangAwalTotal: 0, jumlahTidakDailyReport: 0, jumlahSakit: 0, jumlahCutiTahunan: 0 };
+  const r = tanpaAbsensi ? rKosong : (rekap || rKosong);
 
-  const potTelat = round2(perJam * r.jamTelatTotal);
-  const potLupaAbsen = round2(perJam * r.jamLupaAbsenTotal);
-  const potMangkir = round2(perHari * (r.hariMangkir * 2));
-  const potDailyReport = round2(perJam * 4 * r.jumlahTidakDailyReport);
-  const potLeaveEarly = round2(perJam * r.jamPulangAwalTotal);
+  let potTelat = round2(perJam * r.jamTelatTotal);
+  let potLupaAbsen = round2(perJam * r.jamLupaAbsenTotal);
+  let potMangkir = round2(perHari * (r.hariMangkir * 2));
+  let potDailyReport = round2(perJam * 4 * r.jumlahTidakDailyReport);
+  let potLeaveEarly = round2(perJam * r.jamPulangAwalTotal);
 
   // Sakit Diluar Tanggungan: jika total sakit terpakai pegawai (p.sakitTerpakai,
   // sudah termasuk surat sakit s/d saat ini) melebihi jatah sakitnya (default 12),
@@ -686,11 +688,22 @@ function muatDanHitungSlip() {
   const sakitTerpakaiSebelumPeriodeIni = Math.max(0, sakitTerpakaiSaatIni - jumlahSakitPeriodeIni);
   const sakitTakDitanggungSebelum = Math.max(0, sakitTerpakaiSebelumPeriodeIni - jatahSakit);
   const sakitTakDitanggungSetelah = Math.max(0, sakitTerpakaiSaatIni - jatahSakit);
-  const jumlahSakitTakDitanggungPeriodeIni = Math.max(0, sakitTakDitanggungSetelah - sakitTakDitanggungSebelum);
-  const potSakitDiluarTanggungan = round2(perHari * jumlahSakitTakDitanggungPeriodeIni);
+  let jumlahSakitTakDitanggungPeriodeIni = Math.max(0, sakitTakDitanggungSetelah - sakitTakDitanggungSebelum);
+  let potSakitDiluarTanggungan = round2(perHari * jumlahSakitTakDitanggungPeriodeIni);
+
+  // Mode "tanpa absensi": hanya Gaji Pokok + Tunjangan (+ komponen manual seperti
+  // THR/Lembur/Kasbon di panel berikutnya) — semua potongan berbasis kehadiran
+  // dan sakit di atas jatah dinolkan, terlepas dari data yang mungkin masih
+  // tersimpan dari import Excel sebelumnya.
+  if (tanpaAbsensi) {
+    potTelat = potLupaAbsen = potMangkir = potDailyReport = potLeaveEarly = 0;
+    jumlahSakitTakDitanggungPeriodeIni = 0;
+    potSakitDiluarTanggungan = 0;
+  }
 
   currentSlipCalc = {
     personaliaId,
+    tanpaAbsensi,
     potTelat, potLupaAbsen, potMangkir, potDailyReport, potLeaveEarly, potSakitDiluarTanggungan,
     jamTelatTotal: r.jamTelatTotal, jamLupaAbsenTotal: r.jamLupaAbsenTotal,
     hariMangkir: r.hariMangkir, jumlahTidakDailyReport: r.jumlahTidakDailyReport,
@@ -698,21 +711,27 @@ function muatDanHitungSlip() {
     jumlahSakitPeriode: r.jumlahSakit || 0,
     jumlahSakitTakDitanggungPeriodeIni,
     jumlahCutiPeriode: r.jumlahCutiTahunan || 0,
-    rincian: r.rincian || null,
-    detailHarian: r.detailHarian || null,
+    rincian: tanpaAbsensi ? null : (r.rincian || null),
+    detailHarian: tanpaAbsensi ? null : (r.detailHarian || null),
     namaPegawai: p.nama
   };
 
-  document.getElementById("autoCalcSummary").innerHTML = `
-    <div class="calc-item calc-item-clickable" data-kategori="telat">Telat (${r.jamTelatTotal} jam)<b>${formatRupiah(potTelat)}</b></div>
-    <div class="calc-item calc-item-clickable" data-kategori="lupaAbsen">Lupa Absen (${r.jamLupaAbsenTotal} jam)<b>${formatRupiah(potLupaAbsen)}</b></div>
-    <div class="calc-item calc-item-clickable" data-kategori="mangkir">Mangkir (${r.hariMangkir} hari)<b>${formatRupiah(potMangkir)}</b></div>
-    <div class="calc-item calc-item-clickable" data-kategori="dailyReport">Daily Report (${r.jumlahTidakDailyReport}x)<b>${formatRupiah(potDailyReport)}</b></div>
-    <div class="calc-item calc-item-clickable" data-kategori="pulangAwal">Pulang Awal (${r.jamPulangAwalTotal} jam)<b>${formatRupiah(potLeaveEarly)}</b></div>
-    <div class="calc-item calc-item-clickable" data-kategori="sakit">Sakit periode ini<b>${r.jumlahSakit || 0} hari</b></div>
-    <div class="calc-item calc-item-clickable" data-kategori="cuti">Cuti periode ini<b>${r.jumlahCutiTahunan || 0} hari</b></div>
-    <div class="calc-item">Sakit Diluar Tanggungan (${jumlahSakitTakDitanggungPeriodeIni} hari, jatah ${jatahSakit} hari)<b>${formatRupiah(potSakitDiluarTanggungan)}</b></div>
-  `;
+  if (tanpaAbsensi) {
+    document.getElementById("autoCalcSummary").innerHTML = `
+      <p style="color:#94a3b8;grid-column:1/-1">Mode tanpa absensi aktif — tidak ada potongan kehadiran (Telat, Lupa Absen, Mangkir, Daily Report, Pulang Awal, Sakit Diluar Tanggungan). Slip hanya menghitung Gaji Pokok, Tunjangan Tetap, dan komponen manual (THR, Lembur, dll) di bawah ini.</p>
+    `;
+  } else {
+    document.getElementById("autoCalcSummary").innerHTML = `
+      <div class="calc-item calc-item-clickable" data-kategori="telat">Telat (${r.jamTelatTotal} jam)<b>${formatRupiah(potTelat)}</b></div>
+      <div class="calc-item calc-item-clickable" data-kategori="lupaAbsen">Lupa Absen (${r.jamLupaAbsenTotal} jam)<b>${formatRupiah(potLupaAbsen)}</b></div>
+      <div class="calc-item calc-item-clickable" data-kategori="mangkir">Mangkir (${r.hariMangkir} hari)<b>${formatRupiah(potMangkir)}</b></div>
+      <div class="calc-item calc-item-clickable" data-kategori="dailyReport">Daily Report (${r.jumlahTidakDailyReport}x)<b>${formatRupiah(potDailyReport)}</b></div>
+      <div class="calc-item calc-item-clickable" data-kategori="pulangAwal">Pulang Awal (${r.jamPulangAwalTotal} jam)<b>${formatRupiah(potLeaveEarly)}</b></div>
+      <div class="calc-item calc-item-clickable" data-kategori="sakit">Sakit periode ini<b>${r.jumlahSakit || 0} hari</b></div>
+      <div class="calc-item calc-item-clickable" data-kategori="cuti">Cuti periode ini<b>${r.jumlahCutiTahunan || 0} hari</b></div>
+      <div class="calc-item">Sakit Diluar Tanggungan (${jumlahSakitTakDitanggungPeriodeIni} hari, jatah ${jatahSakit} hari)<b>${formatRupiah(potSakitDiluarTanggungan)}</b></div>
+    `;
+  }
   document.getElementById("slipAdjustPanel").style.display = "block";
   document.getElementById("slipPreviewPanel").style.display = "none";
 }
@@ -833,6 +852,7 @@ function generateSlip() {
     cutOff,
     tglBergabung: p.tglBergabung,
     masaKerjaLabel: masaKerja.label,
+    tanpaAbsensi: !!currentSlipCalc.tanpaAbsensi,
     jatahSakit: p.jatahSakit,
     sakitTerpakai: sakitTerpakaiBaru,
     sisaSakit,
@@ -885,7 +905,7 @@ function buildSlipSheetHtml(s) {
       </div>
       <div class="slip-doc-tag">Slip Gaji</div>
     </div>
-    <div class="slip-title">SLIP GAJI ${escapeHtml(s.periodeLabel.toUpperCase())}</div>
+    <div class="slip-title">SLIP GAJI ${escapeHtml(s.periodeLabel.toUpperCase())}${s.tanpaAbsensi ? ' <span class="slip-tag-tanpa-absensi">(Tanpa Perhitungan Absensi)</span>' : ""}</div>
     <div class="slip-cols">
       <div>
         <div class="slip-row"><span>Nama</span><span>:</span><span>${escapeHtml(s.nama)}</span></div>
