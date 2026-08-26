@@ -1,14 +1,14 @@
-const CACHE_NAME = "penggajian-cache-v2";
+const CACHE_NAME = "penggajian-cache-v3";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./css/style.css",
-  "./js/app.js",
-  "./js/firebase-init.js",
-  "./js/xlsx.full.min.js",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./style.css",
+  "./app.js",
+  "./firebase-init.js",
+  "./xlsx.full.min.js",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
