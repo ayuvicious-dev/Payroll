@@ -12,6 +12,7 @@ const DEFAULT_CONFIG = {
   alamat3: "Kab. Sidoarjo, Jawa Timur, 61218",
   jamMasuk: "08:00",
   jamPulang: "16:00",
+  jamPulangSabtu: "13:00",
   toleransiMenit: 15,
   hariKerjaPerBulan: 26,
   jamKerjaPerHari: 8
@@ -467,9 +468,15 @@ function parseSheetDetailHarian(rows) {
 function hitungRekapDariHarian(hari) {
   const cfg = DB.config;
   const jamMasukStd = timeToMinutes(cfg.jamMasuk) ?? 480;
-  const jamPulangStd = timeToMinutes(cfg.jamPulang) ?? 960;
+  const jamPulangStdNormal = timeToMinutes(cfg.jamPulang) ?? 960;
+  const jamPulangStdSabtu = timeToMinutes(cfg.jamPulangSabtu) ?? jamPulangStdNormal;
   const toleransi = Number(cfg.toleransiMenit) || 15;
   const gajiPokokPerJam = null; // dihitung nanti saat generate slip (butuh gaji pokok pegawai)
+
+  function isHariSabtu(tanggalRaw) {
+    const d = parseDateFlexible(tanggalRaw);
+    return d ? d.getDay() === 6 : false; // 6 = Sabtu
+  }
 
   let jamTelatTotal = 0;
   let jamLupaAbsenTotal = 0;
@@ -510,9 +517,12 @@ function hitungRekapDariHarian(hari) {
 
       if (keluarMin === null) {
         jamLupaAbsenTotal += 4; // lupa absen keluar
-      } else if (keluarMin < jamPulangStd) {
-        const selisih = jamPulangStd - keluarMin;
-        jamPulangAwalTotal += Math.ceil(selisih / 60);
+      } else {
+        const jamPulangStd = isHariSabtu(h.tanggal) ? jamPulangStdSabtu : jamPulangStdNormal;
+        if (keluarMin < jamPulangStd) {
+          const selisih = jamPulangStd - keluarMin;
+          jamPulangAwalTotal += Math.ceil(selisih / 60);
+        }
       }
 
       if (h.dailyReport && !/on-?time/i.test(h.dailyReport)) {
@@ -839,6 +849,7 @@ function renderPengaturanForm() {
   document.getElementById("cfgAlamat3").value = c.alamat3;
   document.getElementById("cfgJamMasuk").value = c.jamMasuk;
   document.getElementById("cfgJamPulang").value = c.jamPulang;
+  document.getElementById("cfgJamPulangSabtu").value = c.jamPulangSabtu;
   document.getElementById("cfgToleransi").value = c.toleransiMenit;
   document.getElementById("cfgHariKerja").value = c.hariKerjaPerBulan;
   document.getElementById("cfgJamKerja").value = c.jamKerjaPerHari;
@@ -853,6 +864,7 @@ function simpanPengaturan() {
     alamat3: document.getElementById("cfgAlamat3").value,
     jamMasuk: document.getElementById("cfgJamMasuk").value,
     jamPulang: document.getElementById("cfgJamPulang").value,
+    jamPulangSabtu: document.getElementById("cfgJamPulangSabtu").value,
     toleransiMenit: Number(document.getElementById("cfgToleransi").value),
     hariKerjaPerBulan: Number(document.getElementById("cfgHariKerja").value),
     jamKerjaPerHari: Number(document.getElementById("cfgJamKerja").value)
