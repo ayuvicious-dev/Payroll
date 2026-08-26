@@ -21,6 +21,17 @@
   --sb-text-muted:#9a8b81;
   --sb-text-faint:#6d5f56;
 
+  /* Report / printed-document palette (cover, lampiran divider, slip) */
+  --rp-navy:#0f2748;
+  --rp-navy-2:#173a68;
+  --rp-gold:#b8912f;
+  --rp-gold-soft:#e9d9a6;
+  --rp-paper:#ffffff;
+  --rp-ink:#1c2333;
+  --rp-muted:#68707f;
+  --rp-line:#dfe3ea;
+  --rp-tint:#f6f8fb;
+
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 *{box-sizing:border-box;}
@@ -169,20 +180,50 @@ input,select{font-family:inherit;}
 /* SLIP */
 .slip-actions{display:flex;gap:10px;margin-bottom:16px;}
 .slip-sheet{
-  background:#fff;border:1px solid var(--border);padding:28px;max-width:820px;margin:0 auto;font-size:13px;
+  background:#fff;border:1px solid var(--rp-line);padding:34px 36px;max-width:820px;margin:0 auto;
+  font-size:12.5px;color:var(--rp-ink);position:relative;
 }
-.slip-header{text-align:center;margin-bottom:10px;}
-.slip-header .company{font-weight:700;font-size:15px;}
-.slip-header .addr{color:var(--ink-soft);font-size:12px;line-height:1.4;}
-.slip-title{text-align:center;font-weight:700;letter-spacing:1px;background:#eef2ff;padding:6px;margin:14px 0;border-radius:6px;}
-.slip-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;}
-.slip-row{display:grid;grid-template-columns:150px 12px 1fr;padding:3px 0;}
-.slip-section-title{font-weight:700;background:#f1f5f9;padding:5px 8px;border-radius:6px;margin:14px 0 6px;}
-.slip-money-row{display:grid;grid-template-columns:1fr 12px auto;padding:3px 0;gap:6px;}
-.slip-total{font-weight:700;border-top:1px solid var(--border);margin-top:6px;padding-top:6px;}
-.slip-thp{background:#0f172a;color:#fff;padding:10px 14px;border-radius:8px;margin-top:16px;display:flex;justify-content:space-between;font-weight:700;font-size:15px;}
-.slip-sign{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:50px;text-align:center;}
-.slip-sign .line{margin-top:60px;border-top:1px solid #334155;padding-top:4px;}
+.slip-sheet::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--rp-navy),var(--rp-navy-2) 55%,var(--rp-gold));
+}
+.slip-header{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding-bottom:14px;margin-bottom:6px;border-bottom:2px solid var(--rp-navy);}
+.slip-header .slip-header-brand{display:flex;align-items:center;gap:12px;}
+.slip-logo{max-width:56px;max-height:56px;object-fit:contain;display:block;margin:0;}
+.slip-header .company{font-weight:800;font-size:15px;color:var(--rp-navy);letter-spacing:.2px;}
+.slip-header .addr{color:var(--rp-muted);font-size:11px;line-height:1.45;margin-top:2px;}
+.slip-header .slip-doc-tag{
+  text-align:right;font-size:10px;letter-spacing:1.5px;color:var(--rp-gold);font-weight:700;
+  text-transform:uppercase;white-space:nowrap;
+}
+.slip-title{
+  text-align:center;font-weight:700;letter-spacing:1.5px;color:var(--rp-navy);
+  background:var(--rp-tint);padding:8px;margin:16px 0 18px;border-radius:6px;
+  border:1px solid var(--rp-line);font-size:13px;text-transform:uppercase;
+}
+.slip-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px 32px;margin-bottom:18px;}
+.slip-row{display:grid;grid-template-columns:132px 10px 1fr;padding:3.5px 0;border-bottom:1px dotted var(--rp-line);}
+.slip-row span:first-child{color:var(--rp-muted);}
+.slip-row span:last-child{font-weight:600;}
+.slip-section-title{
+  font-weight:700;color:var(--rp-navy);padding:5px 0 5px 10px;margin:16px 0 8px;
+  border-left:3px solid var(--rp-gold);background:var(--rp-tint);letter-spacing:.5px;
+  font-size:11.5px;text-transform:uppercase;border-radius:0 4px 4px 0;
+}
+.slip-money-row{display:grid;grid-template-columns:1fr 10px auto;padding:4px 0;gap:6px;border-bottom:1px dotted var(--rp-line);}
+.slip-money-row span:last-child{font-variant-numeric:tabular-nums;text-align:right;}
+.slip-total{font-weight:800;border-top:1.5px solid var(--rp-navy);border-bottom:none;margin-top:6px;padding-top:7px;color:var(--rp-navy);}
+.slip-thp{
+  background:linear-gradient(90deg,var(--rp-navy),var(--rp-navy-2));color:#fff;padding:12px 16px;
+  border-radius:8px;margin-top:18px;display:flex;justify-content:space-between;align-items:center;
+  font-weight:700;font-size:15px;box-shadow:0 2px 6px rgba(15,39,72,.25);
+}
+.slip-thp span:first-child{font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:600;opacity:.85;}
+.slip-sign{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:54px;text-align:center;font-size:12px;}
+.slip-sign .line{margin-top:56px;border-top:1px solid var(--rp-ink);padding-top:5px;font-weight:600;}
+.slip-foot-note{margin-top:26px;padding-top:8px;border-top:1px solid var(--rp-line);
+  font-size:9.5px;color:var(--rp-muted);text-align:center;letter-spacing:.3px;}
 
 @media (max-width: 900px){
   .sidebar{transform:translateX(-100%);}
@@ -209,41 +250,87 @@ input,select{font-family:inherit;}
 }
 
 /* ===========================================================
-   LAPORAN PERIODE (cover + slip semua staff + lampiran) — PDF
+   LAPORAN PERIODE (cover + ringkasan + slip semua staff + lampiran) — PDF
    =========================================================== */
-.laporan-cover{
-  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;padding:40px;
-}
-.laporan-cover .cover-logo{max-width:150px;max-height:110px;object-fit:contain;margin-bottom:18px;}
-.laporan-cover .cover-title{font-size:30px;font-weight:800;letter-spacing:2px;margin-bottom:6px;}
-.laporan-cover .cover-company{font-size:20px;font-weight:700;margin-bottom:4px;}
-.laporan-cover .cover-addr{font-size:13px;color:var(--ink-soft);margin-bottom:22px;line-height:1.5;}
-.laporan-cover .cover-periode{
-  font-size:16px;font-weight:700;background:#eef2ff;color:var(--accent);
-  padding:8px 20px;border-radius:8px;letter-spacing:1px;margin-bottom:26px;
-}
-.laporan-cover .cover-info-table{border-collapse:collapse;margin:0 auto 26px;font-size:13px;}
-.laporan-cover .cover-info-table td{padding:6px 14px;border-bottom:1px solid var(--border);text-align:left;}
-.laporan-cover .cover-info-table td:first-child{color:var(--ink-soft);}
 
-.lampiran-sheet{max-width:820px;margin:0 auto;font-size:13px;padding:12px 0;}
-.lampiran-head{text-align:center;margin-bottom:16px;}
+/* Shared decorative top/bottom accent bars used on cover & lampiran divider */
+.rp-topbar{height:8px;background:linear-gradient(90deg,var(--rp-navy) 0%,var(--rp-navy-2) 55%,var(--rp-gold) 100%);}
+.rp-bottombar{height:8px;background:linear-gradient(90deg,var(--rp-gold) 0%,var(--rp-navy-2) 45%,var(--rp-navy) 100%);}
+
+.rp-cover{
+  min-height:100vh;display:flex;flex-direction:column;padding:0;background:var(--rp-paper);
+  position:relative;
+}
+.rp-cover-inner{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:40px 48px;
+}
+.rp-cover-head{display:flex;align-items:center;gap:14px;position:absolute;top:34px;left:44px;right:44px;
+  justify-content:flex-start;text-align:left;}
+.rp-cover-head .cover-logo{max-width:70px;max-height:70px;object-fit:contain;}
+.rp-cover-head-text .cover-company{font-size:14px;font-weight:800;color:var(--rp-navy);letter-spacing:.3px;}
+.rp-cover-head-text .cover-addr{font-size:10.5px;color:var(--rp-muted);line-height:1.5;margin-top:2px;}
+
+.rp-cover-titleblock{margin-top:26px;margin-bottom:34px;}
+.rp-cover-eyebrow{font-size:11px;letter-spacing:4px;color:var(--rp-gold);font-weight:700;margin-bottom:10px;text-transform:uppercase;}
+.rp-cover-title{font-size:36px;font-weight:800;letter-spacing:3px;color:var(--rp-navy);margin-bottom:14px;}
+.rp-cover-periode{
+  display:inline-block;font-size:14px;font-weight:700;background:var(--rp-navy);color:var(--rp-gold-soft);
+  padding:9px 26px;border-radius:999px;letter-spacing:2px;
+}
+
+.rp-cover-meta{width:100%;max-width:420px;margin:0 auto;border-top:1px solid var(--rp-line);}
+.rp-cover-meta-row{
+  display:flex;justify-content:space-between;padding:11px 4px;border-bottom:1px solid var(--rp-line);
+  font-size:13px;
+}
+.rp-cover-meta-row span:first-child{color:var(--rp-muted);}
+.rp-cover-meta-row span:last-child{font-weight:700;color:var(--rp-ink);}
+
+.rp-cover-foot{text-align:center;padding:18px 40px 26px;font-size:10px;color:var(--rp-muted);letter-spacing:.3px;}
+
+/* RINGKASAN PERIODE (rekap seluruh staff) */
+.rp-page{padding:16px 4px 30px;max-width:820px;margin:0 auto;}
+.rp-page-head{border-bottom:2px solid var(--rp-navy);padding-bottom:12px;margin-bottom:18px;
+  display:flex;justify-content:space-between;align-items:flex-end;gap:16px;}
+.rp-page-head-title{font-size:18px;font-weight:800;color:var(--rp-navy);letter-spacing:.3px;}
+.rp-page-head-sub{font-size:11.5px;color:var(--rp-muted);text-align:right;line-height:1.5;}
+
+.rp-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rp-table thead th{
+  text-align:left;background:var(--rp-navy);color:#fff;padding:9px 10px;font-weight:700;
+  letter-spacing:.3px;font-size:11px;text-transform:uppercase;
+}
+.rp-table thead th.num{text-align:right;}
+.rp-table tbody td{padding:8px 10px;border-bottom:1px solid var(--rp-line);}
+.rp-table tbody tr:nth-child(even){background:var(--rp-tint);}
+.rp-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.rp-table tfoot td{
+  padding:10px;border-top:2px solid var(--rp-navy);font-weight:800;color:var(--rp-navy);
+  font-size:12.5px;
+}
+.rp-table tfoot td.num{text-align:right;}
+
+/* LAMPIRAN — halaman per staff */
+.lampiran-sheet{max-width:820px;margin:0 auto;font-size:12.5px;padding:14px 2px;color:var(--rp-ink);}
+.lampiran-head{padding-bottom:14px;margin-bottom:16px;border-bottom:2px solid var(--rp-navy);}
 .lampiran-head .tag{
-  display:inline-block;background:#0f172a;color:#fff;font-size:11px;font-weight:700;
-  letter-spacing:1px;padding:4px 12px;border-radius:6px;margin-bottom:8px;
+  display:inline-block;background:var(--rp-navy);color:var(--rp-gold-soft);font-size:10px;font-weight:700;
+  letter-spacing:1.5px;padding:5px 12px;border-radius:5px;margin-bottom:10px;text-transform:uppercase;
 }
-.lampiran-head .nama{font-size:16px;font-weight:700;}
-.lampiran-head .sub{font-size:12px;color:var(--ink-soft);}
+.lampiran-head .nama{font-size:17px;font-weight:800;color:var(--rp-navy);}
+.lampiran-head .sub{font-size:12px;color:var(--rp-muted);margin-top:2px;}
 .lampiran-section-title{
-  font-weight:700;background:#f1f5f9;padding:6px 10px;border-radius:6px;margin:16px 0 8px;font-size:13px;
+  font-weight:700;color:var(--rp-navy);padding:5px 0 5px 10px;border-left:3px solid var(--rp-gold);
+  background:var(--rp-tint);margin:18px 0 8px;font-size:12px;letter-spacing:.3px;
+  text-transform:uppercase;border-radius:0 4px 4px 0;
 }
-.lampiran-empty{color:var(--ink-soft);font-size:12px;padding:4px 2px 10px;}
-.lampiran-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;}
-.lampiran-table th{text-align:left;background:#f8fafc;padding:6px 8px;border-bottom:2px solid var(--border);}
-.lampiran-table td{padding:6px 8px;border-bottom:1px solid var(--border);}
+.lampiran-empty{color:var(--rp-muted);font-size:11.5px;padding:4px 2px 10px;font-style:italic;}
+.lampiran-table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:6px;}
+.lampiran-table th{text-align:left;background:var(--rp-tint);padding:6px 8px;border-bottom:2px solid var(--rp-line);color:var(--rp-navy);font-weight:700;}
+.lampiran-table td{padding:6px 8px;border-bottom:1px solid var(--rp-line);}
 .lampiran-foto-row{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px;}
-.lampiran-foto-row img{width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--border);}
+.lampiran-foto-row img{width:74px;height:74px;object-fit:cover;border-radius:6px;border:1px solid var(--rp-line);}
 
 /* LOGIN OVERLAY */
 .login-overlay{

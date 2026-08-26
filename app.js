@@ -146,6 +146,12 @@ function formatTglIndo(iso) {
   return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function formatTglIndoLong(d) {
+  d = d instanceof Date ? d : new Date(d);
+  return d.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" }) +
+    " " + d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+}
+
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -837,9 +843,14 @@ function buildSlipSheetHtml(s) {
   return `
   <div class="slip-sheet">
     <div class="slip-header">
-      ${cfg.logoUrl ? `<img class="slip-logo" src="${cfg.logoUrl}" alt="Logo Perusahaan">` : ""}
-      <div class="company">${escapeHtml(cfg.namaPerusahaan)}</div>
-      <div class="addr">${escapeHtml(cfg.alamat1)}<br>${escapeHtml(cfg.alamat2)}<br>${escapeHtml(cfg.alamat3)}</div>
+      <div class="slip-header-brand">
+        ${cfg.logoUrl ? `<img class="slip-logo" src="${cfg.logoUrl}" alt="Logo Perusahaan">` : ""}
+        <div>
+          <div class="company">${escapeHtml(cfg.namaPerusahaan)}</div>
+          <div class="addr">${escapeHtml(cfg.alamat1)}<br>${escapeHtml(cfg.alamat2)}<br>${escapeHtml(cfg.alamat3)}</div>
+        </div>
+      </div>
+      <div class="slip-doc-tag">Slip Gaji</div>
     </div>
     <div class="slip-title">SLIP GAJI ${escapeHtml(s.periodeLabel.toUpperCase())}</div>
     <div class="slip-cols">
@@ -892,6 +903,7 @@ function buildSlipSheetHtml(s) {
       <div><div>Payroll</div><div class="line">&nbsp;</div></div>
       <div><div>Diterima Oleh,</div><div class="line">${escapeHtml(s.nama)}</div></div>
     </div>
+    <div class="slip-foot-note">Dokumen ini dihasilkan otomatis oleh sistem penggajian ${escapeHtml(cfg.namaPerusahaan)} — mohon disimpan sebagai arsip pribadi.</div>
   </div>`;
 }
 
@@ -994,16 +1006,90 @@ function buildCoverHtml(periodeLabel, slips) {
   const cfg = DB.config;
   const totalTHP = slips.reduce((a, s) => a + (s.thp || 0), 0);
   return `
-  <div class="cetak-page laporan-cover">
-    ${cfg.logoUrl ? `<img class="cover-logo" src="${cfg.logoUrl}" alt="Logo Perusahaan">` : ""}
-    <div class="cover-title">SLIP GAJI</div>
-    <div class="cover-company">${escapeHtml(cfg.namaPerusahaan)}</div>
-    <div class="cover-addr">${escapeHtml(cfg.alamat1)}<br>${escapeHtml(cfg.alamat2)}<br>${escapeHtml(cfg.alamat3)}</div>
-    <div class="cover-periode">PERIODE ${escapeHtml(periodeLabel.toUpperCase())}</div>
-    <table class="cover-info-table">
-      <tr><td>Jumlah Staff</td><td>: ${slips.length} orang</td></tr>
-      <tr><td>Total THP Periode Ini</td><td>: ${formatRupiah(totalTHP)}</td></tr>
-    </table>
+  <div class="cetak-page rp-cover">
+    <div class="rp-topbar"></div>
+    <div class="rp-cover-inner">
+      <div class="rp-cover-head">
+        ${cfg.logoUrl ? `<img class="cover-logo" src="${cfg.logoUrl}" alt="Logo Perusahaan">` : ""}
+        <div class="rp-cover-head-text">
+          <div class="cover-company">${escapeHtml(cfg.namaPerusahaan)}</div>
+          <div class="cover-addr">${escapeHtml(cfg.alamat1)}<br>${escapeHtml(cfg.alamat2)}<br>${escapeHtml(cfg.alamat3)}</div>
+        </div>
+      </div>
+      <div class="rp-cover-titleblock">
+        <div class="rp-cover-eyebrow">Laporan Penggajian</div>
+        <div class="rp-cover-title">SLIP GAJI</div>
+        <div class="rp-cover-periode">PERIODE ${escapeHtml(periodeLabel.toUpperCase())}</div>
+      </div>
+      <div class="rp-cover-meta">
+        <div class="rp-cover-meta-row"><span>Jumlah Staff</span><span>${slips.length} Orang</span></div>
+        <div class="rp-cover-meta-row"><span>Total Take Home Pay</span><span>${formatRupiah(totalTHP)}</span></div>
+        <div class="rp-cover-meta-row"><span>Dicetak Pada</span><span>${formatTglIndoLong(new Date())}</span></div>
+      </div>
+    </div>
+    <div class="rp-cover-foot">Dokumen ini berisi slip gaji, ringkasan periode, serta lampiran pendukung — dihasilkan otomatis oleh sistem penggajian internal.</div>
+    <div class="rp-bottombar"></div>
+  </div>`;
+}
+
+function buildRingkasanHtml(periodeLabel, slips) {
+  const cfg = DB.config;
+  const totalPenerimaan = slips.reduce((a, s) => a + (s.penerimaan?.total || 0), 0);
+  const totalPemotongan = slips.reduce((a, s) => a + (s.pemotongan?.total || 0), 0);
+  const totalTHP = slips.reduce((a, s) => a + (s.thp || 0), 0);
+
+  const rows = slips.map((s, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${escapeHtml(s.nama)}</td>
+      <td>${escapeHtml(s.jabatan || "-")}</td>
+      <td class="num">${formatRupiah(s.penerimaan?.total || 0)}</td>
+      <td class="num">${formatRupiah(s.pemotongan?.total || 0)}</td>
+      <td class="num">${formatRupiah(s.thp || 0)}</td>
+    </tr>`).join("");
+
+  return `
+  <div class="cetak-page">
+    <div class="rp-page">
+      <div class="rp-page-head">
+        <div class="rp-page-head-title">Ringkasan Periode ${escapeHtml(periodeLabel.toUpperCase())}</div>
+        <div class="rp-page-head-sub">${escapeHtml(cfg.namaPerusahaan)}<br>${slips.length} staff dibayarkan pada periode ini</div>
+      </div>
+      <table class="rp-table">
+        <thead>
+          <tr><th>No</th><th>Nama</th><th>Jabatan</th><th class="num">Total Penerimaan</th><th class="num">Total Pemotongan</th><th class="num">THP</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">TOTAL</td>
+            <td class="num">${formatRupiah(totalPenerimaan)}</td>
+            <td class="num">${formatRupiah(totalPemotongan)}</td>
+            <td class="num">${formatRupiah(totalTHP)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>`;
+}
+
+function buildLampiranDividerHtml(periodeLabel, slips) {
+  return `
+  <div class="cetak-page rp-cover">
+    <div class="rp-topbar"></div>
+    <div class="rp-cover-inner">
+      <div class="rp-cover-titleblock">
+        <div class="rp-cover-eyebrow">Dokumen Pendukung</div>
+        <div class="rp-cover-title">LAMPIRAN</div>
+        <div class="rp-cover-periode">PERIODE ${escapeHtml(periodeLabel.toUpperCase())}</div>
+      </div>
+      <div class="rp-cover-meta">
+        <div class="rp-cover-meta-row"><span>Isi Lampiran</span><span>Rincian Absensi &amp; Surat Sakit</span></div>
+        <div class="rp-cover-meta-row"><span>Jumlah Staff</span><span>${slips.length} Orang</span></div>
+      </div>
+    </div>
+    <div class="rp-cover-foot">Halaman berikut memuat rincian pendukung untuk setiap slip gaji pada laporan ini.</div>
+    <div class="rp-bottombar"></div>
   </div>`;
 }
 
@@ -1086,10 +1172,13 @@ function buatLaporanPeriode() {
   if (slips.length === 0) { alert("Tidak ada slip untuk periode ini."); return; }
 
   const coverHtml = buildCoverHtml(periodeLabel, slips);
+  const ringkasanHtml = buildRingkasanHtml(periodeLabel, slips);
   const slipPagesHtml = slips.map(s => `<div class="cetak-page">${buildSlipSheetHtml(s)}</div>`).join("");
+  const lampiranDividerHtml = buildLampiranDividerHtml(periodeLabel, slips);
   const lampiranHtml = slips.map(s => buildLampiranStaffHtml(s)).join("");
 
-  document.getElementById("laporanContainer").innerHTML = coverHtml + slipPagesHtml + lampiranHtml;
+  document.getElementById("laporanContainer").innerHTML =
+    coverHtml + ringkasanHtml + slipPagesHtml + lampiranDividerHtml + lampiranHtml;
   document.getElementById("laporanPreviewPanel").style.display = "block";
   document.getElementById("laporanInfo").innerHTML =
     `<p style="color:#16a34a">Laporan siap: ${slips.length} slip gaji + lampiran untuk periode <b>${escapeHtml(periodeLabel)}</b>.</p>`;
