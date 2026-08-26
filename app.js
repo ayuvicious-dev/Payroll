@@ -908,7 +908,7 @@ function buildSlipSheetHtml(s) {
 }
 
 function renderSlipPreview(s) {
-  document.getElementById("slipContainer").innerHTML = buildSlipSheetHtml(s);
+  document.getElementById("slipContainer").innerHTML = `<div class="cetak-page">${buildSlipSheetHtml(s)}</div>`;
 }
 
 function simpanSlipKeRiwayat() {

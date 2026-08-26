@@ -236,12 +236,31 @@ input,select{font-family:inherit;}
   .slip-sign{grid-template-columns:1fr;}
 }
 
-@page{ size:A4 portrait; margin:12mm; }
+/* ===========================================================
+   PAPER PAGE — preview di layar dibuat identik ukurannya dengan
+   halaman A4 yang benar-benar tercetak, supaya "Cetak / Simpan PDF"
+   hasilnya sama persis dengan pre-review (tidak meluber / berubah
+   format). @page margin dibuat 0 dan jarak 12mm dipindah menjadi
+   padding internal .cetak-page, jadi ukurannya konsisten baik di
+   layar maupun di kertas.
+   =========================================================== */
+@page{ size:A4 portrait; margin:0; }
+
+.report-canvas{background:#dde2eb;padding:26px 14px;overflow-x:auto;}
+.cetak-page{
+  background:#fff;width:210mm;min-height:297mm;padding:12mm;box-sizing:border-box;
+  margin:0 auto 22px;box-shadow:0 4px 18px rgba(15,23,42,.18);position:relative;
+}
+.cetak-page:last-child{margin-bottom:0;}
+/* Halaman "cover-style" (sampul & pembatas lampiran) selalu tepat 1 halaman penuh */
+.cetak-page.rp-cover{height:297mm;min-height:0;overflow:hidden;}
 
 @media print{
   .sidebar,.topbar,.slip-actions,.page-head,.panel .btn-primary,.no-print{display:none !important;}
   .content{margin:0;padding:0;}
   .panel{border:none;box-shadow:none;padding:0;}
+  .report-canvas{background:#fff;padding:0;overflow:visible;}
+  .cetak-page{box-shadow:none;margin:0;}
   body{background:#fff;}
   #slipPreviewPanel{border:none;}
   #laporanPreviewPanel{border:none;}
@@ -252,9 +271,6 @@ input,select{font-family:inherit;}
   /* Setiap .cetak-page = satu halaman, mulai di halaman baru & tidak digabung dgn halaman lain */
   .cetak-page{page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;}
   .cetak-page:last-child{page-break-after:auto;break-after:auto;}
-
-  /* rp-cover pakai tinggi tetap setara 1 halaman A4 (bukan 100vh) supaya tidak meluber ke halaman ke-2 */
-  .rp-cover{min-height:0 !important;height:273mm;}
 
   /* Blok dokumen inti: jangan sampai terpotong di tengah, dorong ke halaman berikutnya jika perlu */
   .slip-sheet,.lampiran-sheet,.lampiran-head{page-break-inside:avoid;break-inside:avoid;}
@@ -282,7 +298,7 @@ input,select{font-family:inherit;}
 .rp-bottombar{height:8px;background:linear-gradient(90deg,var(--rp-gold) 0%,var(--rp-navy-2) 45%,var(--rp-navy) 100%);}
 
 .rp-cover{
-  min-height:100vh;display:flex;flex-direction:column;padding:0;background:var(--rp-paper);
+  height:100%;display:flex;flex-direction:column;padding:0;background:var(--rp-paper);
   position:relative;
 }
 .rp-cover-inner{
