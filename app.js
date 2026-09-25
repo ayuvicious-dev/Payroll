@@ -233,7 +233,7 @@ function closeModalPersonalia() {
   document.getElementById("modalPersonalia").classList.remove("active");
 }
 
-function simpanPersonalia() {
+async function simpanPersonalia() {
   const id = document.getElementById("modalPersonalia").dataset.editId;
   const nama = document.getElementById("fNama").value.trim();
   if (!nama) { alert("Nama wajib diisi"); return; }
@@ -269,16 +269,28 @@ function simpanPersonalia() {
   renderPersonaliaTable();
   populateAllPersonaliaSelects();
   renderDashboard();
-  closeModalPersonalia();
 
-  // Kirim langsung ke cloud (bukan menunggu debounce 500ms) supaya data baru
-  // tidak hilang kalau user langsung refresh setelah menyimpan.
-  if (typeof window.flushDBSave === "function") {
-    window.flushDBSave().catch(() => { /* tetap tersimpan lokal; akan sync lagi saat online */ });
+  // Tunggu sampai benar-benar tersimpan ke cloud sebelum menutup modal, supaya
+  // user tidak refresh sebelum data ini betul-betul sampai ke server (kalau
+  // ditutup terlalu cepat, refresh bisa menimpa balik dengan data lama).
+  const btn = document.getElementById("btnSimpanPersonalia");
+  const teksAsli = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Menyimpan...";
+  try {
+    if (typeof window.flushDBSave === "function") {
+      await window.flushDBSave();
+    }
+  } catch (e) {
+    alert("Gagal menyimpan ke cloud (kemungkinan koneksi terputus). Data tetap tersimpan di perangkat ini dan akan sync otomatis saat online kembali — jangan refresh dulu sebelum koneksi normal.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = teksAsli;
   }
+  closeModalPersonalia();
 }
 
-function hapusPersonalia(id) {
+async function hapusPersonalia(id) {
   if (!confirm("Hapus data personalia ini? Data terkait (kehadiran/sakit/slip) tidak akan otomatis terhapus.")) return;
   DB.personalia = DB.personalia.filter(p => p.id !== id);
   saveDB();
@@ -287,7 +299,7 @@ function hapusPersonalia(id) {
   renderDashboard();
 
   if (typeof window.flushDBSave === "function") {
-    window.flushDBSave().catch(() => { /* tetap tersimpan lokal; akan sync lagi saat online */ });
+    await window.flushDBSave().catch(() => { /* tetap tersimpan lokal; akan sync lagi saat online */ });
   }
 }
 
