@@ -48,6 +48,37 @@ let suppressNextAutoSave = false;
 
 const el = (id) => document.getElementById(id);
 
+let lastToastAt = 0;
+function showSyncFailToast(msg) {
+  const now = Date.now();
+  if (now - lastToastAt < 8000) return; // jangan spam kalau gagal berkali-kali beruntun
+  lastToastAt = now;
+  showToastNow(msg);
+}
+function showToastNow(msg) {
+  const container = el("toastContainer");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 6000);
+}
+window.showToast = showToastNow;
+
+function setSyncDot(state) {
+  const dot = el("syncDot");
+  if (!dot) return;
+  dot.classList.remove("dirty", "syncing", "synced");
+  dot.classList.add(state);
+  const labels = {
+    dirty: "Ada perubahan belum tersinkron — klik untuk sinkron sekarang",
+    syncing: "Sedang menyinkronkan...",
+    synced: "Semua perubahan tersimpan"
+  };
+  dot.title = labels[state] || "";
+}
+
 function showLogin(message) {
   el("loginOverlay").style.display = "flex";
   el("appRoot").style.display = "none";
@@ -116,6 +147,11 @@ el("btnResetPassword").addEventListener("click", doResetPassword);
   el(id).addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
 });
 el("btnLogout").addEventListener("click", doLogout);
+el("syncDot") && el("syncDot").addEventListener("click", () => {
+  if (typeof window.flushDBSave === "function") {
+    window.flushDBSave().catch(() => { /* tetap tersimpan lokal; akan sync lagi saat online */ });
+  }
+});
 
 onAuthStateChanged(auth, (user) => {
   if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
@@ -165,6 +201,7 @@ onAuthStateChanged(auth, (user) => {
       showApp();
       window.startPayrollApp();
       updateSyncIndicator("online");
+      setSyncDot(perluPerbaikanBalik ? "dirty" : "synced");
 
       if (perluPerbaikanBalik) {
         // Data di server masih membawa slip yang sudah dihapus — kirim balik
@@ -179,6 +216,7 @@ onAuthStateChanged(auth, (user) => {
       showApp();
       window.startPayrollApp(); // tetap jalan pakai data localStorage kalau offline
       updateSyncIndicator("offline");
+      showSyncFailToast("⚠ Tidak bisa terhubung ke server. Bekerja dalam mode offline dengan data lokal.");
     }
   );
 });
@@ -186,6 +224,7 @@ onAuthStateChanged(auth, (user) => {
 // Dipanggil oleh app.js setiap kali saveDB() jalan (lihat hook window.onDBSaved)
 window.onDBSaved = function () {
   if (suppressNextAutoSave) { suppressNextAutoSave = false; return; }
+  setSyncDot("dirty");
   if (!auth.currentUser) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
@@ -195,12 +234,18 @@ window.onDBSaved = function () {
 
 function doFirestoreSave() {
   if (!auth.currentUser) return Promise.resolve();
+  setSyncDot("syncing");
   const ref = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
   return setDoc(ref, { ...window.DB, updatedAt: serverTimestamp(), updatedBy: auth.currentUser.email })
-    .then(() => updateSyncIndicator("online"))
+    .then(() => {
+      updateSyncIndicator("online");
+      setSyncDot("synced");
+    })
     .catch((err) => {
       console.error("Gagal sync ke Firestore:", err);
       updateSyncIndicator("offline");
+      setSyncDot("dirty");
+      showSyncFailToast("⚠ Gagal menyimpan ke cloud. Periksa koneksi internet — data tetap aman di perangkat ini.");
       throw err;
     });
 }

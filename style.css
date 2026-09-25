@@ -57,6 +57,25 @@ input,select{font-family:inherit;}
 .brand-title strong span{color:var(--sb-orange);font-weight:800;}
 .brand-sub{font-size:10px;letter-spacing:1px;color:var(--sb-text-faint);margin-top:2px;}
 
+.sync-dot{
+  width:10px;height:10px;border-radius:50%;margin-left:8px;flex-shrink:0;cursor:pointer;
+  background:#0f172a;border:1px solid rgba(255,255,255,.25);transition:background .2s, transform .15s;
+}
+.sync-dot:hover{transform:scale(1.15);}
+.sync-dot.dirty{background:var(--sb-orange);border-color:var(--sb-orange);}
+.sync-dot.syncing{background:#2563eb;border-color:#2563eb;animation:syncDotPulse 1s ease-in-out infinite;}
+.sync-dot.synced{background:#0f172a;border-color:rgba(255,255,255,.25);}
+@keyframes syncDotPulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+
+.toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{
+  background:#1c1512;color:#f2ece7;border:1px solid #3a2c25;border-left:4px solid #dc4444;
+  border-radius:8px;padding:10px 14px;font-size:13px;max-width:320px;box-shadow:0 6px 20px rgba(0,0,0,.25);
+  animation:toastIn .2s ease-out;
+}
+.toast.warn{border-left-color:#e2a53f;}
+@keyframes toastIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+
 .account-box{
   background:var(--sb-card);border:1px solid var(--sb-border);border-radius:12px;
   padding:10px 12px;margin:0 4px 18px;

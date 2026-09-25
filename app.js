@@ -282,7 +282,11 @@ async function simpanPersonalia() {
       await window.flushDBSave();
     }
   } catch (e) {
-    alert("Gagal menyimpan ke cloud (kemungkinan koneksi terputus). Data tetap tersimpan di perangkat ini dan akan sync otomatis saat online kembali — jangan refresh dulu sebelum koneksi normal.");
+    if (typeof window.showToast === "function") {
+      window.showToast("⚠ Gagal menyimpan ke cloud. Data tetap aman di perangkat ini — jangan refresh dulu sebelum koneksi normal.");
+    } else {
+      alert("Gagal menyimpan ke cloud (kemungkinan koneksi terputus). Data tetap tersimpan di perangkat ini dan akan sync otomatis saat online kembali — jangan refresh dulu sebelum koneksi normal.");
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = teksAsli;
