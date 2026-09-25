@@ -106,6 +106,31 @@ function diffMasaKerja(tglBergabung, tglAcuan) {
   return { tahun: 0, bulan: totalBulan, totalBulan, label: `${totalBulan} Bulan`, tahunDesimal: totalBulan / 12 };
 }
 
+function diffHariKerja(tglBergabung) {
+  const a = parseDateFlexible(tglBergabung);
+  if (!a) return null;
+  const b = new Date();
+  const aa = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const bb = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.round((bb - aa) / (1000 * 60 * 60 * 24));
+}
+
+function updateProbationAvailability() {
+  const tgl = document.getElementById("fTglBergabung").value;
+  const chk = document.getElementById("fProbation");
+  const note = document.getElementById("probationNote");
+  const hari = diffHariKerja(tgl);
+  const sudahFull = hari !== null && hari > 100;
+  chk.disabled = sudahFull;
+  if (sudahFull) {
+    chk.checked = false;
+    if (note) note.textContent = `Masa kerja sudah ${hari} hari (>100 hari) — dikategorikan Full, tidak bisa probation.`;
+  } else {
+    if (note) note.textContent = "";
+  }
+  updateSplitPreview();
+}
+
 /* ---------------------------------------------------------
    PERSONALIA
 --------------------------------------------------------- */
@@ -188,7 +213,7 @@ function openModalPersonalia(id) {
     document.getElementById("fTotalGaji").value = 0;
     document.getElementById("fProbation").checked = false;
   }
-  updateSplitPreview();
+  updateProbationAvailability();
   modal.classList.add("active");
 }
 
@@ -213,7 +238,9 @@ function simpanPersonalia() {
   const nama = document.getElementById("fNama").value.trim();
   if (!nama) { alert("Nama wajib diisi"); return; }
   const total = Number(document.getElementById("fTotalGaji").value) || 0;
-  const probation = document.getElementById("fProbation").checked;
+  const tglBergabung = document.getElementById("fTglBergabung").value;
+  const hariKerja = diffHariKerja(tglBergabung);
+  const probation = document.getElementById("fProbation").checked && !(hariKerja !== null && hariKerja > 100);
   const split = hitungSplitGaji(total, probation);
   const data = {
     id: id || uid(),
@@ -1584,6 +1611,8 @@ function startPayrollApp() {
   document.getElementById("btnSimpanPersonalia").addEventListener("click", simpanPersonalia);
   document.getElementById("fTotalGaji").addEventListener("input", updateSplitPreview);
   document.getElementById("fProbation").addEventListener("change", updateSplitPreview);
+  document.getElementById("fTglBergabung").addEventListener("input", updateProbationAvailability);
+  document.getElementById("fTglBergabung").addEventListener("change", updateProbationAvailability);
   document.querySelector("#tblPersonalia tbody").addEventListener("click", (e) => {
     const btn = e.target.closest("button");
     if (!btn) return;
