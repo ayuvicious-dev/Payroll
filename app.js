@@ -109,11 +109,12 @@ function diffMasaKerja(tglBergabung, tglAcuan) {
 /* ---------------------------------------------------------
    PERSONALIA
 --------------------------------------------------------- */
-function hitungSplitGaji(total) {
+function hitungSplitGaji(total, probation) {
   total = Number(total) || 0;
-  const pokok = round2(total * 0.8);
-  const transport = round2(total * 0.1);
-  const makan = round2(total * 0.1);
+  const faktor = probation ? 0.9 : 1;
+  const pokok = round2(total * 0.8 * faktor);
+  const transport = round2(total * 0.1 * faktor);
+  const makan = round2(total * 0.1 * faktor);
   return { pokok, transport, makan };
 }
 function round2(n) { return Math.round(n); }
@@ -129,7 +130,7 @@ function renderPersonaliaTable() {
     const masa = diffMasaKerja(p.tglBergabung);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escapeHtml(p.nama)}</td>
+      <td>${escapeHtml(p.nama)}${p.probation ? ' <span style="font-size:11px;padding:2px 6px;border-radius:4px;background:#fef3c7;color:#92400e;font-weight:600;">Probation</span>' : ''}</td>
       <td>${escapeHtml(p.jabatan)}</td>
       <td>${p.tglBergabung ? formatTglIndo(p.tglBergabung) : "-"}</td>
       <td>${masa.label}</td>
@@ -176,6 +177,7 @@ function openModalPersonalia(id) {
     document.getElementById("fEmail").value = p.email || "";
     document.getElementById("fVisitInOut").value = p.visitInOut;
     document.getElementById("fTotalGaji").value = p.totalGaji;
+    document.getElementById("fProbation").checked = !!p.probation;
   } else {
     ["fNama", "fJabatan", "fTglBergabung", "fEmail"].forEach(id2 => document.getElementById(id2).value = "");
     document.getElementById("fJatahSakit").value = 12;
@@ -184,6 +186,7 @@ function openModalPersonalia(id) {
     document.getElementById("fCutiTerpakai").value = 0;
     document.getElementById("fVisitInOut").value = 0;
     document.getElementById("fTotalGaji").value = 0;
+    document.getElementById("fProbation").checked = false;
   }
   updateSplitPreview();
   modal.classList.add("active");
@@ -191,11 +194,14 @@ function openModalPersonalia(id) {
 
 function updateSplitPreview() {
   const total = Number(document.getElementById("fTotalGaji").value) || 0;
-  const { pokok, transport, makan } = hitungSplitGaji(total);
+  const probation = document.getElementById("fProbation").checked;
+  const { pokok, transport, makan } = hitungSplitGaji(total, probation);
+  const label = probation ? "80%x90%" : "80%";
+  const labelT = probation ? "10%x90%" : "10%";
   document.getElementById("splitPreview").innerHTML =
-    `Gaji Pokok (80%): <b>${formatRupiah(pokok)}</b> &nbsp;|&nbsp;
-     Tunjangan Transport (10%): <b>${formatRupiah(transport)}</b> &nbsp;|&nbsp;
-     Tunjangan Makan (10%): <b>${formatRupiah(makan)}</b>`;
+    `Gaji Pokok (${label}): <b>${formatRupiah(pokok)}</b> &nbsp;|&nbsp;
+     Tunjangan Transport (${labelT}): <b>${formatRupiah(transport)}</b> &nbsp;|&nbsp;
+     Tunjangan Makan (${labelT}): <b>${formatRupiah(makan)}</b>`;
 }
 
 function closeModalPersonalia() {
@@ -207,7 +213,8 @@ function simpanPersonalia() {
   const nama = document.getElementById("fNama").value.trim();
   if (!nama) { alert("Nama wajib diisi"); return; }
   const total = Number(document.getElementById("fTotalGaji").value) || 0;
-  const split = hitungSplitGaji(total);
+  const probation = document.getElementById("fProbation").checked;
+  const split = hitungSplitGaji(total, probation);
   const data = {
     id: id || uid(),
     nama,
@@ -220,6 +227,7 @@ function simpanPersonalia() {
     email: document.getElementById("fEmail").value.trim(),
     visitInOut: Number(document.getElementById("fVisitInOut").value) || 0,
     totalGaji: total,
+    probation,
     gajiPokok: split.pokok,
     tunjTransport: split.transport,
     tunjMakan: split.makan
@@ -1575,6 +1583,7 @@ function startPayrollApp() {
   document.getElementById("btnBatalPersonalia").addEventListener("click", closeModalPersonalia);
   document.getElementById("btnSimpanPersonalia").addEventListener("click", simpanPersonalia);
   document.getElementById("fTotalGaji").addEventListener("input", updateSplitPreview);
+  document.getElementById("fProbation").addEventListener("change", updateSplitPreview);
   document.querySelector("#tblPersonalia tbody").addEventListener("click", (e) => {
     const btn = e.target.closest("button");
     if (!btn) return;
