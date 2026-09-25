@@ -270,6 +270,12 @@ function simpanPersonalia() {
   populateAllPersonaliaSelects();
   renderDashboard();
   closeModalPersonalia();
+
+  // Kirim langsung ke cloud (bukan menunggu debounce 500ms) supaya data baru
+  // tidak hilang kalau user langsung refresh setelah menyimpan.
+  if (typeof window.flushDBSave === "function") {
+    window.flushDBSave().catch(() => { /* tetap tersimpan lokal; akan sync lagi saat online */ });
+  }
 }
 
 function hapusPersonalia(id) {
@@ -279,6 +285,10 @@ function hapusPersonalia(id) {
   renderPersonaliaTable();
   populateAllPersonaliaSelects();
   renderDashboard();
+
+  if (typeof window.flushDBSave === "function") {
+    window.flushDBSave().catch(() => { /* tetap tersimpan lokal; akan sync lagi saat online */ });
+  }
 }
 
 function populateAllPersonaliaSelects() {
