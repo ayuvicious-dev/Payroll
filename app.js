@@ -308,7 +308,7 @@ async function hapusPersonalia(id) {
 }
 
 function populateAllPersonaliaSelects() {
-  const selects = ["selKehadiranPegawai", "selSlipPegawai", "fSakitPegawai"];
+  const selects = ["selSlipPegawai", "fSakitPegawai"];
   selects.forEach(selId => {
     const sel = document.getElementById(selId);
     const current = sel.value;
@@ -742,11 +742,56 @@ function parseSheetRingkasan(rows, namaPegawai) {
 --------------------------------------------------------- */
 let currentSlipCalc = null;
 
+function htmlPreviewKehadiran(hasil) {
+  return `
+    <p style="color:#16a34a">Berhasil diimpor dari sumber: <b>${hasil.sumber}</b></p>
+    <div class="calc-summary">
+      <div class="calc-item">Hari Hadir<b>${hasil.jumlahHadir}</b></div>
+      <div class="calc-item">Jam Telat<b>${hasil.jamTelatTotal}</b></div>
+      <div class="calc-item">Jam Lupa Absen<b>${hasil.jamLupaAbsenTotal}</b></div>
+      <div class="calc-item">Hari Mangkir<b>${hasil.hariMangkir}</b></div>
+      <div class="calc-item">Jam Pulang Awal<b>${hasil.jamPulangAwalTotal}</b></div>
+      <div class="calc-item">Tidak Daily Report<b>${hasil.jumlahTidakDailyReport}x</b></div>
+      <div class="calc-item">Sakit<b>${hasil.jumlahSakit} hari</b></div>
+      <div class="calc-item">Cuti Tahunan<b>${hasil.jumlahCutiTahunan} hari</b></div>
+    </div>`;
+}
+
 function muatDanHitungSlip() {
   const personaliaId = document.getElementById("selSlipPegawai").value;
   const p = getPersonaliaById(personaliaId);
   if (!p) { alert("Pilih pegawai terlebih dahulu"); return; }
 
+  const previewBox = document.getElementById("kehadiranPreviewSlip");
+  const fileInput = document.getElementById("fileKehadiranSlip");
+  const file = fileInput && fileInput.files[0];
+
+  if (file) {
+    prosesFileKehadiran(file, personaliaId, (hasil) => {
+      if (!hasil) {
+        previewBox.innerHTML = "<p style='color:#dc2626'>Format file tidak dikenali. Pastikan sheet berisi kolom Tanggal/Status atau sheet Ringkasan Kehadiran.</p>";
+        return;
+      }
+      const periodeLabel = labelPeriodeDariInputBulan(document.getElementById("inpKehadiranPeriodeSlip").value);
+      if (periodeLabel) {
+        hasil.periodeLabel = periodeLabel;
+        document.getElementById("inpSlipBulan").value = periodeLabel;
+      }
+      DB.kehadiranImport[personaliaId] = hasil;
+      saveDB();
+      previewBox.innerHTML = htmlPreviewKehadiran(hasil);
+      fileInput.value = "";
+      lanjutkanHitungSlip(personaliaId, p);
+    });
+  } else {
+    if (!DB.kehadiranImport[personaliaId] && !document.getElementById("chkTanpaAbsensi").checked) {
+      previewBox.innerHTML = "";
+    }
+    lanjutkanHitungSlip(personaliaId, p);
+  }
+}
+
+function lanjutkanHitungSlip(personaliaId, p) {
   const tanpaAbsensi = document.getElementById("chkTanpaAbsensi").checked;
   const rekap = DB.kehadiranImport[personaliaId];
   if (!tanpaAbsensi && !rekap) {
@@ -1556,7 +1601,7 @@ function navigateTo(pageKey) {
   document.getElementById("page-" + pageKey).classList.add("active");
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === pageKey));
   const titles = {
-    dashboard: "Dashboard", personalia: "Personalia", kehadiran: "Import Kehadiran",
+    dashboard: "Dashboard", personalia: "Personalia",
     sakit: "Surat Sakit", slip: "Slip Gaji", riwayat: "Riwayat Slip", laporan: "Laporan Periode", pengaturan: "Pengaturan"
   };
   document.getElementById("pageTitleMobile").textContent = titles[pageKey] || "";
@@ -1718,39 +1763,6 @@ function startPayrollApp() {
   });
   document.getElementById("btnTutupLihatFoto").addEventListener("click", () => {
     document.getElementById("modalLihatFoto").classList.remove("active");
-  });
-
-  // Import Kehadiran
-  document.getElementById("btnProsesKehadiran").addEventListener("click", () => {
-    const fileInput = document.getElementById("fileKehadiran");
-    const personaliaId = document.getElementById("selKehadiranPegawai").value;
-    if (!fileInput.files[0]) { alert("Pilih file Excel terlebih dahulu"); return; }
-    if (!personaliaId) { alert("Pilih personalia terlebih dahulu"); return; }
-    prosesFileKehadiran(fileInput.files[0], personaliaId, (hasil) => {
-      if (!hasil) {
-        document.getElementById("kehadiranPreview").innerHTML = "<p style='color:#dc2626'>Format file tidak dikenali. Pastikan sheet berisi kolom Tanggal/Status atau sheet Ringkasan Kehadiran.</p>";
-        return;
-      }
-      const periodeLabel = labelPeriodeDariInputBulan(document.getElementById("inpKehadiranPeriode").value);
-      if (periodeLabel) hasil.periodeLabel = periodeLabel;
-      DB.kehadiranImport[personaliaId] = hasil;
-      saveDB();
-      if (periodeLabel && document.getElementById("selSlipPegawai").value === personaliaId) {
-        document.getElementById("inpSlipBulan").value = periodeLabel;
-      }
-      document.getElementById("kehadiranPreview").innerHTML = `
-        <p style="color:#16a34a">Berhasil diproses dari sumber: <b>${hasil.sumber}</b></p>
-        <div class="calc-summary">
-          <div class="calc-item">Hari Hadir<b>${hasil.jumlahHadir}</b></div>
-          <div class="calc-item">Jam Telat<b>${hasil.jamTelatTotal}</b></div>
-          <div class="calc-item">Jam Lupa Absen<b>${hasil.jamLupaAbsenTotal}</b></div>
-          <div class="calc-item">Hari Mangkir<b>${hasil.hariMangkir}</b></div>
-          <div class="calc-item">Jam Pulang Awal<b>${hasil.jamPulangAwalTotal}</b></div>
-          <div class="calc-item">Tidak Daily Report<b>${hasil.jumlahTidakDailyReport}x</b></div>
-          <div class="calc-item">Sakit<b>${hasil.jumlahSakit} hari</b></div>
-          <div class="calc-item">Cuti Tahunan<b>${hasil.jumlahCutiTahunan} hari</b></div>
-        </div>`;
-    });
   });
 
   // Slip
