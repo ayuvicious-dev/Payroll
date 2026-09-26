@@ -690,6 +690,7 @@ function hitungRekapDariHarian(hari) {
     jumlahHadir,
     jamTelatTotal,
     jamLupaAbsenTotal,
+    hariLupaAbsen: new Set(rincianLupaAbsen.map(x => x.tanggal)).size, // jumlah HARI unik yang ada kejadian lupa absen (bukan jumlah jam/kejadian)
     hariMangkir,
     jamPulangAwalTotal,
     jumlahTidakDailyReport,
@@ -743,6 +744,7 @@ function parseSheetRingkasan(rows, namaPegawai) {
       jumlahHadir: Number(row[iHariKehadiran]) || 0,
       jamTelatTotal: hariTerlambat * 1, // pendekatan: tiap hari terlambat dihitung 1 jam
       jamLupaAbsenTotal: belumLengkap * 4,
+      hariLupaAbsen: belumLengkap,
       hariMangkir: Number(row[iTidakHadir]) || 0,
       jamPulangAwalTotal: 0,
       jumlahTidakDailyReport: 0,
@@ -826,7 +828,7 @@ function lanjutkanHitungSlip(personaliaId, p) {
   const perJam = gajiPokok / cfg.hariKerjaPerBulan / cfg.jamKerjaPerHari;
   const perHari = gajiPokok / cfg.hariKerjaPerBulan;
 
-  const rKosong = { jamTelatTotal: 0, jamLupaAbsenTotal: 0, hariMangkir: 0, jamPulangAwalTotal: 0, jumlahTidakDailyReport: 0, jumlahSakit: 0, jumlahCutiTahunan: 0, jumlahHadir: cfg.hariKerjaPerBulan };
+  const rKosong = { jamTelatTotal: 0, jamLupaAbsenTotal: 0, hariLupaAbsen: 0, hariMangkir: 0, jamPulangAwalTotal: 0, jumlahTidakDailyReport: 0, jumlahSakit: 0, jumlahCutiTahunan: 0, jumlahHadir: cfg.hariKerjaPerBulan };
   const r = tanpaAbsensi ? rKosong : (rekap || rKosong);
 
   // PRORATA GAJI PERIODE AWAL PROBATION: kalau ini periode pertama pegawai
@@ -885,6 +887,7 @@ function lanjutkanHitungSlip(personaliaId, p) {
     tanpaAbsensi,
     potTelat, potLupaAbsen, potMangkir, potDailyReport, potLeaveEarly, potSakitDiluarTanggungan,
     jamTelatTotal: r.jamTelatTotal, jamLupaAbsenTotal: r.jamLupaAbsenTotal,
+    hariLupaAbsen: r.hariLupaAbsen || 0,
     hariMangkir: r.hariMangkir, jumlahTidakDailyReport: r.jumlahTidakDailyReport,
     jamPulangAwalTotal: r.jamPulangAwalTotal,
     jumlahSakitPeriode: r.jumlahSakit || 0,
@@ -1061,6 +1064,7 @@ function generateSlip() {
     ringkasanAbsensi: {
       jamTelatTotal: currentSlipCalc.jamTelatTotal || 0,
       jamLupaAbsenTotal: currentSlipCalc.jamLupaAbsenTotal || 0,
+      hariLupaAbsen: currentSlipCalc.hariLupaAbsen || 0,
       hariMangkir: currentSlipCalc.hariMangkir || 0,
       jumlahTidakDailyReport: currentSlipCalc.jumlahTidakDailyReport || 0,
       jamPulangAwalTotal: currentSlipCalc.jamPulangAwalTotal || 0,
@@ -1129,7 +1133,7 @@ function buildSlipSheetHtml(s) {
         <div class="slip-section-title">PEMOTONGAN</div>
         <div class="slip-money-row"><span>Kasbon</span><span>:</span><span>${s.pemotongan.kasbon ? formatRupiah(s.pemotongan.kasbon) : "-"}</span></div>
         <div class="slip-money-row"><span>Telat (${s.ringkasanAbsensi?.jamTelatTotal ?? 0} jam)</span><span>:</span><span>${s.pemotongan.telat ? formatRupiah(s.pemotongan.telat) : "-"}</span></div>
-        <div class="slip-money-row"><span>Lupa Absen (${s.ringkasanAbsensi?.jamLupaAbsenTotal ?? 0}/${cfg.hariKerjaPerBulan} hari)</span><span>:</span><span>${s.pemotongan.lupaAbsen ? formatRupiah(s.pemotongan.lupaAbsen) : "-"}</span></div>
+        <div class="slip-money-row"><span>Lupa Absen (${s.ringkasanAbsensi?.hariLupaAbsen ?? 0}/${cfg.hariKerjaPerBulan})</span><span>:</span><span>${s.pemotongan.lupaAbsen ? formatRupiah(s.pemotongan.lupaAbsen) : "-"}</span></div>
         <div class="slip-money-row"><span>Mangkir (${s.ringkasanAbsensi?.hariMangkir ?? 0}/${cfg.hariKerjaPerBulan})</span><span>:</span><span>${s.pemotongan.mangkir ? formatRupiah(s.pemotongan.mangkir) : "-"}</span></div>
         <div class="slip-money-row"><span>Daily Report (${s.ringkasanAbsensi?.jumlahTidakDailyReport ?? 0}/${cfg.hariKerjaPerBulan})</span><span>:</span><span>${s.pemotongan.dailyReport ? formatRupiah(s.pemotongan.dailyReport) : "-"}</span></div>
         <div class="slip-money-row"><span>Leave Early (${s.ringkasanAbsensi?.jamPulangAwalTotal ?? 0}/${cfg.hariKerjaPerBulan})</span><span>:</span><span>${s.pemotongan.leaveEarly ? formatRupiah(s.pemotongan.leaveEarly) : "-"}</span></div>
