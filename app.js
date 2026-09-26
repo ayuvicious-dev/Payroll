@@ -91,6 +91,16 @@ function timeToMinutes(t) {
   return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
 }
 
+// Excel absensi kadang menampilkan Jam Keluar dengan embel-embel tanggal,
+// misal "08:13 (17 Sep 26)" — artinya scan itu sebenarnya tercatat di HARI
+// BERIKUTNYA (lewat tengah malam), bukan jam pulang di hari itu. Kalau
+// dipakai apa adanya, jam sepagi itu akan salah dihitung sebagai "pulang
+// awal" berjam-jam. Fungsi ini mendeteksi pola tersebut.
+function jamTercatatDiHariLain(raw) {
+  if (!raw || raw === "-" || typeof raw !== "string") return false;
+  return /\(.*\d.*\)/.test(raw);
+}
+
 function diffMasaKerja(tglBergabung, tglAcuan) {
   const a = parseDateFlexible(tglBergabung);
   const b = tglAcuan ? parseDateFlexible(tglAcuan) : new Date();
@@ -642,9 +652,13 @@ function hitungRekapDariHarian(hari) {
         rincianTelat.push({ tanggal: h.tanggal, jamMasuk: h.jamMasuk, jamTelat });
       }
 
-      if (keluarMin === null) {
-        jamLupaAbsenTotal += 4; // lupa absen keluar
-        rincianLupaAbsen.push({ tanggal: h.tanggal, jenis: "Jam Keluar", jam: 4 });
+      if (keluarMin === null || jamTercatatDiHariLain(h.jamKeluar)) {
+        jamLupaAbsenTotal += 4; // lupa absen keluar (termasuk jam keluar yang ternyata tercatat di hari berikutnya)
+        rincianLupaAbsen.push({
+          tanggal: h.tanggal,
+          jenis: jamTercatatDiHariLain(h.jamKeluar) ? "Jam Keluar (tercatat di hari berikutnya)" : "Jam Keluar",
+          jam: 4
+        });
       } else {
         const jamPulangStd = isHariSabtu(h.tanggal) ? jamPulangStdSabtu : jamPulangStdNormal;
         if (keluarMin < jamPulangStd) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "penggajian-cache-v11";
+const CACHE_NAME = "penggajian-cache-v12";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
