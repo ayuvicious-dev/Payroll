@@ -436,6 +436,33 @@ function hapusSuratSakit(id) {
       detail tidak ditemukan)
 --------------------------------------------------------- */
 
+const NAMA_BULAN_ID = [
+  "JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI",
+  "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"
+];
+
+// Ubah value <input type="month"> (format "YYYY-MM") menjadi label
+// seperti "SEPTEMBER 2026". Mengembalikan "" kalau value kosong/invalid.
+function labelPeriodeDariInputBulan(value) {
+  if (!value) return "";
+  const parts = value.split("-");
+  if (parts.length !== 2) return "";
+  const tahun = parts[0];
+  const bulanIdx = parseInt(parts[1], 10) - 1;
+  if (bulanIdx < 0 || bulanIdx > 11 || !tahun) return "";
+  return `${NAMA_BULAN_ID[bulanIdx]} ${tahun}`;
+}
+
+// Kalau pegawai yang dipilih di halaman Slip Gaji punya data hasil import
+// kehadiran dengan periode tersimpan, isi otomatis field "Bulan Slip".
+function autoIsiBulanSlipDariKehadiran() {
+  const personaliaId = document.getElementById("selSlipPegawai").value;
+  const rekap = personaliaId ? DB.kehadiranImport[personaliaId] : null;
+  if (rekap && rekap.periodeLabel) {
+    document.getElementById("inpSlipBulan").value = rekap.periodeLabel;
+  }
+}
+
 function prosesFileKehadiran(file, personaliaId, callback) {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -1534,6 +1561,9 @@ function navigateTo(pageKey) {
   };
   document.getElementById("pageTitleMobile").textContent = titles[pageKey] || "";
   document.getElementById("sidebar").classList.remove("open");
+  if (pageKey === "slip" && !document.getElementById("inpSlipBulan").value.trim()) {
+    autoIsiBulanSlipDariKehadiran();
+  }
 }
 
 /* ---------------------------------------------------------
@@ -1701,8 +1731,13 @@ function startPayrollApp() {
         document.getElementById("kehadiranPreview").innerHTML = "<p style='color:#dc2626'>Format file tidak dikenali. Pastikan sheet berisi kolom Tanggal/Status atau sheet Ringkasan Kehadiran.</p>";
         return;
       }
+      const periodeLabel = labelPeriodeDariInputBulan(document.getElementById("inpKehadiranPeriode").value);
+      if (periodeLabel) hasil.periodeLabel = periodeLabel;
       DB.kehadiranImport[personaliaId] = hasil;
       saveDB();
+      if (periodeLabel && document.getElementById("selSlipPegawai").value === personaliaId) {
+        document.getElementById("inpSlipBulan").value = periodeLabel;
+      }
       document.getElementById("kehadiranPreview").innerHTML = `
         <p style="color:#16a34a">Berhasil diproses dari sumber: <b>${hasil.sumber}</b></p>
         <div class="calc-summary">
@@ -1719,6 +1754,7 @@ function startPayrollApp() {
   });
 
   // Slip
+  document.getElementById("selSlipPegawai").addEventListener("change", autoIsiBulanSlipDariKehadiran);
   document.getElementById("btnMuatDataSlip").addEventListener("click", muatDanHitungSlip);
   document.getElementById("btnGenerateSlip").addEventListener("click", generateSlip);
   document.getElementById("autoCalcSummary").addEventListener("click", (e) => {
