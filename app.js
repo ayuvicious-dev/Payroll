@@ -808,6 +808,13 @@ function muatDanHitungSlip() {
   }
 }
 
+// Cek apakah pegawai ini SUDAH PERNAH punya slip gaji sebelumnya (dipakai
+// untuk menentukan "periode awal" masa probation — biasanya periode pertama
+// setelah bergabung, di mana jumlah hari kerjanya tidak genap sebulan).
+function sudahPernahDapatSlip(personaliaId) {
+  return DB.riwayatSlip.some(s => s.personaliaId === personaliaId);
+}
+
 function lanjutkanHitungSlip(personaliaId, p) {
   const tanpaAbsensi = document.getElementById("chkTanpaAbsensi").checked;
   const rekap = DB.kehadiranImport[personaliaId];
@@ -819,8 +826,28 @@ function lanjutkanHitungSlip(personaliaId, p) {
   const perJam = gajiPokok / cfg.hariKerjaPerBulan / cfg.jamKerjaPerHari;
   const perHari = gajiPokok / cfg.hariKerjaPerBulan;
 
-  const rKosong = { jamTelatTotal: 0, jamLupaAbsenTotal: 0, hariMangkir: 0, jamPulangAwalTotal: 0, jumlahTidakDailyReport: 0, jumlahSakit: 0, jumlahCutiTahunan: 0 };
+  const rKosong = { jamTelatTotal: 0, jamLupaAbsenTotal: 0, hariMangkir: 0, jamPulangAwalTotal: 0, jumlahTidakDailyReport: 0, jumlahSakit: 0, jumlahCutiTahunan: 0, jumlahHadir: cfg.hariKerjaPerBulan };
   const r = tanpaAbsensi ? rKosong : (rekap || rKosong);
+
+  // PRORATA GAJI PERIODE AWAL PROBATION: kalau ini periode pertama pegawai
+  // ini (belum pernah ada slip sebelumnya) DAN statusnya probation, maka
+  // Gaji Pokok, Transport, dan Uang Makan dihitung prorata sesuai jumlah
+  // Hari Hadir riil (bukan dibayar penuh sebulan), karena periode pertama
+  // biasanya cuma sebagian bulan (baru bergabung di tengah bulan). Mulai
+  // periode berikutnya (sudah pernah ada slip), dibayar penuh seperti biasa
+  // — potongan mangkir/telat dsb. pada periode itu sudah ditangani terpisah
+  // oleh mekanisme potongan yang sudah ada.
+  const periodeAwalProbation = !tanpaAbsensi && !!p.probation && !sudahPernahDapatSlip(personaliaId);
+  const jumlahHadirPeriodeIni = r.jumlahHadir || 0;
+  const gajiPokokDibayar = periodeAwalProbation
+    ? round2((p.gajiPokok / cfg.hariKerjaPerBulan) * jumlahHadirPeriodeIni)
+    : p.gajiPokok;
+  const transportDibayar = periodeAwalProbation
+    ? round2((p.tunjTransport / cfg.hariKerjaPerBulan) * jumlahHadirPeriodeIni)
+    : p.tunjTransport;
+  const makanDibayar = periodeAwalProbation
+    ? round2((p.tunjMakan / cfg.hariKerjaPerBulan) * jumlahHadirPeriodeIni)
+    : p.tunjMakan;
 
   let potTelat = round2(perJam * r.jamTelatTotal);
   let potLupaAbsen = round2(perJam * r.jamLupaAbsenTotal);
@@ -865,7 +892,10 @@ function lanjutkanHitungSlip(personaliaId, p) {
     jumlahCutiPeriode: r.jumlahCutiTahunan || 0,
     rincian: tanpaAbsensi ? null : (r.rincian || null),
     detailHarian: tanpaAbsensi ? null : (r.detailHarian || null),
-    namaPegawai: p.nama
+    namaPegawai: p.nama,
+    periodeAwalProbation,
+    jumlahHadirPeriodeIni,
+    gajiPokokDibayar, transportDibayar, makanDibayar
   };
 
   if (tanpaAbsensi) {
@@ -874,6 +904,7 @@ function lanjutkanHitungSlip(personaliaId, p) {
     `;
   } else {
     document.getElementById("autoCalcSummary").innerHTML = `
+      ${periodeAwalProbation ? `<p style="color:#d97706;grid-column:1/-1;font-weight:600">Periode awal masa probation — Gaji Pokok, Transport &amp; Uang Makan diprorata: ${jumlahHadirPeriodeIni} hari hadir ÷ ${cfg.hariKerjaPerBulan} hari kerja standar. Gaji Pokok jadi ${formatRupiah(gajiPokokDibayar)}, Transport ${formatRupiah(transportDibayar)}, Uang Makan ${formatRupiah(makanDibayar)}.</p>` : ""}
       <div class="calc-item calc-item-clickable" data-kategori="telat">Telat (${r.jamTelatTotal} jam)<b>${formatRupiah(potTelat)}</b></div>
       <div class="calc-item calc-item-clickable" data-kategori="lupaAbsen">Lupa Absen (${r.jamLupaAbsenTotal} jam)<b>${formatRupiah(potLupaAbsen)}</b></div>
       <div class="calc-item calc-item-clickable" data-kategori="mangkir">Mangkir (${r.hariMangkir} hari)<b>${formatRupiah(potMangkir)}</b></div>
@@ -991,7 +1022,7 @@ function generateSlip() {
   const kasbon = Number(document.getElementById("adjKasbon").value) || 0;
   const konversiCuti = Number(document.getElementById("adjKonversiCuti").value) || 0;
 
-  const totalPenerimaan = round2(p.gajiPokok + thr + tunjLiburan + lembur + p.tunjTransport + p.tunjMakan + bpjs + konversiCuti);
+  const totalPenerimaan = round2(currentSlipCalc.gajiPokokDibayar + thr + tunjLiburan + lembur + currentSlipCalc.transportDibayar + currentSlipCalc.makanDibayar + bpjs + konversiCuti);
   const totalPemotongan = round2(kasbon + currentSlipCalc.potTelat + currentSlipCalc.potLupaAbsen + currentSlipCalc.potMangkir + currentSlipCalc.potDailyReport + currentSlipCalc.potLeaveEarly + (currentSlipCalc.potSakitDiluarTanggungan || 0));
   const thp = round2(totalPenerimaan - totalPemotongan);
 
@@ -1006,6 +1037,8 @@ function generateSlip() {
     tglBergabung: p.tglBergabung,
     masaKerjaLabel: masaKerja.label,
     tanpaAbsensi: !!currentSlipCalc.tanpaAbsensi,
+    prorataAwalProbation: !!currentSlipCalc.periodeAwalProbation,
+    hariHadirPeriodeIni: currentSlipCalc.jumlahHadirPeriodeIni || 0,
     jatahSakit: p.jatahSakit,
     sakitTerpakai: sakitTerpakaiBaru,
     sisaSakit,
@@ -1014,8 +1047,8 @@ function generateSlip() {
     cutiTerpakai: cutiTerpakaiBaru,
     sisaCuti,
     penerimaan: {
-      gajiPokok: p.gajiPokok, thr, tunjLiburan, lembur,
-      transport: p.tunjTransport, makan: p.tunjMakan, bpjs, konversiCuti, total: totalPenerimaan
+      gajiPokok: currentSlipCalc.gajiPokokDibayar, thr, tunjLiburan, lembur,
+      transport: currentSlipCalc.transportDibayar, makan: currentSlipCalc.makanDibayar, bpjs, konversiCuti, total: totalPenerimaan
     },
     pemotongan: {
       kasbon, telat: currentSlipCalc.potTelat, lupaAbsen: currentSlipCalc.potLupaAbsen,
@@ -1081,6 +1114,7 @@ function buildSlipSheetHtml(s) {
     <div class="slip-cols">
       <div>
         <div class="slip-section-title">PENERIMAAN</div>
+        ${s.prorataAwalProbation ? `<p style="font-size:11px;color:#92400e;margin:0 0 6px">*Periode awal probation — Gaji Pokok/Transport/Uang Makan diprorata ${s.hariHadirPeriodeIni} hari hadir dari ${cfg.hariKerjaPerBulan} hari kerja standar.</p>` : ""}
         <div class="slip-money-row"><span>Gaji Pokok</span><span>:</span><span>${formatRupiah(s.penerimaan.gajiPokok)}</span></div>
         <div class="slip-money-row"><span>THR</span><span>:</span><span>${s.penerimaan.thr ? formatRupiah(s.penerimaan.thr) : "-"}</span></div>
         <div class="slip-money-row"><span>Tunjangan Liburan</span><span>:</span><span>${s.penerimaan.tunjLiburan ? formatRupiah(s.penerimaan.tunjLiburan) : "-"}</span></div>
