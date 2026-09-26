@@ -1118,7 +1118,6 @@ function buildSlipSheetHtml(s) {
     <div class="slip-cols">
       <div>
         <div class="slip-section-title">PENERIMAAN</div>
-        ${s.prorataAwalProbation ? `<p style="font-size:11px;color:#92400e;margin:0 0 6px">*Periode awal probation — Gaji Pokok/Transport/Uang Makan diprorata ${s.hariHadirPeriodeIni} hari hadir dari ${cfg.hariKerjaPerBulan} hari kerja standar.</p>` : ""}
         <div class="slip-money-row"><span>Gaji Pokok (${s.hariHadirPeriodeIni ?? 0}/${cfg.hariKerjaPerBulan} hari)</span><span>:</span><span>${formatRupiah(s.penerimaan.gajiPokok)}</span></div>
         <div class="slip-money-row"><span>THR</span><span>:</span><span>${s.penerimaan.thr ? formatRupiah(s.penerimaan.thr) : "-"}</span></div>
         <div class="slip-money-row"><span>Tunjangan Liburan</span><span>:</span><span>${s.penerimaan.tunjLiburan ? formatRupiah(s.penerimaan.tunjLiburan) : "-"}</span></div>
