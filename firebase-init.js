@@ -183,9 +183,24 @@ onAuthStateChanged(auth, (user) => {
         const deletedRemote = data.deletedSlipIds || [];
         const deletedGabungan = Array.from(new Set([...deletedLocal, ...deletedRemote]));
 
+        const riwayatLocal = window.DB.riwayatSlip || [];
         const riwayatRemote = data.riwayatSlip || [];
-        const riwayatBersih = riwayatRemote.filter((s) => !deletedGabungan.includes(s.id));
-        perluPerbaikanBalik = riwayatBersih.length !== riwayatRemote.length;
+        // Gabungkan berdasarkan id: slip yang HANYA ada di lokal (baru dibuat
+        // tapi belum sempat ter-flush ke server, misal karena halaman
+        // keburu di-refresh sebelum debounce selesai) tetap dipertahankan,
+        // supaya tidak tertimpa/hilang oleh data lama dari server.
+        const petaRiwayat = new Map();
+        riwayatRemote.forEach((s) => petaRiwayat.set(s.id, s));
+        let adaSlipLokalBelumSync = false;
+        riwayatLocal.forEach((s) => {
+          if (!petaRiwayat.has(s.id)) {
+            petaRiwayat.set(s.id, s);
+            adaSlipLokalBelumSync = true;
+          }
+        });
+        const riwayatGabungan = Array.from(petaRiwayat.values());
+        const riwayatBersih = riwayatGabungan.filter((s) => !deletedGabungan.includes(s.id));
+        perluPerbaikanBalik = adaSlipLokalBelumSync || riwayatBersih.length !== riwayatRemote.length;
 
         Object.assign(window.DB, {
           config: data.config || window.DB.config,
@@ -283,3 +298,18 @@ function updateSyncIndicator(status) {
 
 window.addEventListener("online", () => updateSyncIndicator("online"));
 window.addEventListener("offline", () => updateSyncIndicator("offline"));
+
+// Jaga-jaga: kalau ada perubahan yang masih menunggu debounce 500ms saat
+// halaman ditutup/direfresh/dipindah tab (terutama di HP), langsung kirim
+// sekarang juga supaya tidak hilang tertimpa data lama saat dibuka lagi.
+function flushJikaAdaPerubahanTertunda() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    doFirestoreSave().catch(() => {});
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushJikaAdaPerubahanTertunda();
+});
+window.addEventListener("pagehide", flushJikaAdaPerubahanTertunda);
