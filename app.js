@@ -1115,7 +1115,7 @@ function buildSlipSheetHtml(s) {
       <div>
         <div class="slip-section-title">PENERIMAAN</div>
         ${s.prorataAwalProbation ? `<p style="font-size:11px;color:#92400e;margin:0 0 6px">*Periode awal probation — Gaji Pokok/Transport/Uang Makan diprorata ${s.hariHadirPeriodeIni} hari hadir dari ${cfg.hariKerjaPerBulan} hari kerja standar.</p>` : ""}
-        <div class="slip-money-row"><span>Gaji Pokok</span><span>:</span><span>${formatRupiah(s.penerimaan.gajiPokok)}</span></div>
+        <div class="slip-money-row"><span>Gaji Pokok (${s.hariHadirPeriodeIni ?? 0}/${cfg.hariKerjaPerBulan} hari)</span><span>:</span><span>${formatRupiah(s.penerimaan.gajiPokok)}</span></div>
         <div class="slip-money-row"><span>THR</span><span>:</span><span>${s.penerimaan.thr ? formatRupiah(s.penerimaan.thr) : "-"}</span></div>
         <div class="slip-money-row"><span>Tunjangan Liburan</span><span>:</span><span>${s.penerimaan.tunjLiburan ? formatRupiah(s.penerimaan.tunjLiburan) : "-"}</span></div>
         <div class="slip-money-row"><span>Lembur</span><span>:</span><span>${s.penerimaan.lembur ? formatRupiah(s.penerimaan.lembur) : "-"}</span></div>
@@ -1128,12 +1128,12 @@ function buildSlipSheetHtml(s) {
       <div>
         <div class="slip-section-title">PEMOTONGAN</div>
         <div class="slip-money-row"><span>Kasbon</span><span>:</span><span>${s.pemotongan.kasbon ? formatRupiah(s.pemotongan.kasbon) : "-"}</span></div>
-        <div class="slip-money-row"><span>Telat</span><span>:</span><span>${s.pemotongan.telat ? formatRupiah(s.pemotongan.telat) : "-"}</span></div>
-        <div class="slip-money-row"><span>Lupa Absen</span><span>:</span><span>${s.pemotongan.lupaAbsen ? formatRupiah(s.pemotongan.lupaAbsen) : "-"}</span></div>
-        <div class="slip-money-row"><span>Mangkir</span><span>:</span><span>${s.pemotongan.mangkir ? formatRupiah(s.pemotongan.mangkir) : "-"}</span></div>
-        <div class="slip-money-row"><span>Daily Report</span><span>:</span><span>${s.pemotongan.dailyReport ? formatRupiah(s.pemotongan.dailyReport) : "-"}</span></div>
-        <div class="slip-money-row"><span>Leave Early</span><span>:</span><span>${s.pemotongan.leaveEarly ? formatRupiah(s.pemotongan.leaveEarly) : "-"}</span></div>
-        <div class="slip-money-row"><span>Sakit Diluar Tanggungan</span><span>:</span><span>${s.pemotongan.sakitDiluarTanggungan ? formatRupiah(s.pemotongan.sakitDiluarTanggungan) : "-"}</span></div>
+        <div class="slip-money-row"><span>Telat (${s.ringkasanAbsensi?.jamTelatTotal ?? 0} jam)</span><span>:</span><span>${s.pemotongan.telat ? formatRupiah(s.pemotongan.telat) : "-"}</span></div>
+        <div class="slip-money-row"><span>Lupa Absen (${s.ringkasanAbsensi?.jamLupaAbsenTotal ?? 0}/${cfg.hariKerjaPerBulan} hari)</span><span>:</span><span>${s.pemotongan.lupaAbsen ? formatRupiah(s.pemotongan.lupaAbsen) : "-"}</span></div>
+        <div class="slip-money-row"><span>Mangkir (${s.ringkasanAbsensi?.hariMangkir ?? 0}/${cfg.hariKerjaPerBulan})</span><span>:</span><span>${s.pemotongan.mangkir ? formatRupiah(s.pemotongan.mangkir) : "-"}</span></div>
+        <div class="slip-money-row"><span>Daily Report (${s.ringkasanAbsensi?.jumlahTidakDailyReport ?? 0}/${cfg.hariKerjaPerBulan})</span><span>:</span><span>${s.pemotongan.dailyReport ? formatRupiah(s.pemotongan.dailyReport) : "-"}</span></div>
+        <div class="slip-money-row"><span>Leave Early (${s.ringkasanAbsensi?.jamPulangAwalTotal ?? 0}/${cfg.hariKerjaPerBulan})</span><span>:</span><span>${s.pemotongan.leaveEarly ? formatRupiah(s.pemotongan.leaveEarly) : "-"}</span></div>
+        <div class="slip-money-row"><span>Sakit Diluar Tanggungan (${s.ringkasanAbsensi?.jumlahSakitTakDitanggungPeriodeIni ?? 0}/${cfg.hariKerjaPerBulan})</span><span>:</span><span>${s.pemotongan.sakitDiluarTanggungan ? formatRupiah(s.pemotongan.sakitDiluarTanggungan) : "-"}</span></div>
         <div class="slip-money-row slip-total"><span>TOTAL PEMOTONGAN</span><span>:</span><span>${formatRupiah(s.pemotongan.total)}</span></div>
       </div>
     </div>
