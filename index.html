@@ -58,7 +58,6 @@
 
       <div class="nav-group-label">PERSONALIA</div>
       <button class="nav-item" data-page="personalia"><span class="nav-icon">◉</span>Personalia</button>
-      <button class="nav-item" data-page="sakit"><span class="nav-icon">✚</span>Surat Sakit</button>
 
       <div class="nav-group-label">PENGGAJIAN</div>
       <button class="nav-item" data-page="slip"><span class="nav-icon">▧</span>Slip Gaji</button>
@@ -128,25 +127,6 @@
       </div>
     </section>
 
-    <!-- SURAT SAKIT -->
-    <section class="page" id="page-sakit">
-      <header class="page-head">
-        <h1>Input Surat Sakit</h1>
-        <p>Catat surat keterangan sakit beserta tanggalnya — otomatis menambah jumlah sakit terpakai.</p>
-        <button class="btn-primary" id="btnTambahSakit">+ Tambah Surat Sakit</button>
-      </header>
-      <div class="panel">
-        <div class="table-wrap">
-          <table class="data-table" id="tblSakit">
-            <thead>
-              <tr><th>Nama</th><th>Tgl Mulai</th><th>Tgl Selesai</th><th>Jumlah Hari</th><th>Keterangan</th><th>Foto</th><th>Aksi</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
     <!-- SLIP GAJI -->
     <section class="page" id="page-slip">
       <header class="page-head">
@@ -180,6 +160,18 @@
           Staff ini tidak ada data absensi (hanya hitung Gaji Pokok + Tunjangan, tanpa potongan kehadiran)
         </label>
         <button class="btn-primary" id="btnMuatDataSlip">Impor Kehadiran &amp; Hitung Slip</button>
+      </div>
+
+      <div class="panel">
+        <h2>Surat Sakit Periode Ini</h2>
+        <p style="font-size:12px;color:var(--ink-soft);margin:-4px 0 12px">Surat sakit pegawai ini yang tanggalnya masuk dalam rentang periode/cut off di atas akan otomatis terekap ke slip &amp; laporan periode ini.</p>
+        <button class="btn-primary" id="btnTambahSakitSlip">+ Tambah Surat Sakit</button>
+        <div class="table-wrap" style="margin-top:12px">
+          <table class="data-table" id="tblSakitPeriode">
+            <thead><tr><th>Tgl Mulai</th><th>Tgl Selesai</th><th>Jumlah Hari</th><th>Keterangan</th><th>Foto</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="panel" id="slipAdjustPanel" style="display:none">
@@ -313,12 +305,13 @@
     <h2>Tambah Surat Sakit</h2>
     <div class="form-grid two">
       <label>Pegawai
-        <select id="fSakitPegawai"></select>
+        <input type="text" id="fSakitPegawaiNama" disabled>
       </label>
       <label>Keterangan<input type="text" id="fSakitKeterangan" placeholder="Demam, dll"></label>
       <label>Tanggal Mulai<input type="date" id="fSakitMulai"></label>
       <label>Tanggal Selesai<input type="date" id="fSakitSelesai"></label>
     </div>
+    <input type="hidden" id="fSakitPegawaiId">
     <label>Foto Surat Sakit (opsional)
       <input type="file" id="fSakitFoto" accept="image/*" capture="environment">
     </label>

@@ -308,7 +308,7 @@ async function hapusPersonalia(id) {
 }
 
 function populateAllPersonaliaSelects() {
-  const selects = ["selSlipPegawai", "fSakitPegawai"];
+  const selects = ["selSlipPegawai"];
   selects.forEach(selId => {
     const sel = document.getElementById(selId);
     const current = sel.value;
@@ -320,17 +320,20 @@ function populateAllPersonaliaSelects() {
 /* ---------------------------------------------------------
    SURAT SAKIT
 --------------------------------------------------------- */
-function renderSakitTable() {
-  const tbody = document.querySelector("#tblSakit tbody");
+function renderSakitPeriodeSlip() {
+  const tbody = document.querySelector("#tblSakitPeriode tbody");
+  if (!tbody) return;
   tbody.innerHTML = "";
-  DB.suratSakit.slice().reverse().forEach(s => {
-    const p = getPersonaliaById(s.personaliaId);
-    const tr = document.createElement("tr");
+  const personaliaId = document.getElementById("selSlipPegawai").value;
+  if (!personaliaId) return;
+  const cutOff = document.getElementById("inpCutOff").value;
+  const daftar = getSuratSakitUntukSlip({ personaliaId, cutOff, id: null }).slice().reverse();
+  daftar.forEach(s => {
     const fotoCell = s.fotoUrl
       ? `<img src="${s.fotoUrl}" class="sakit-thumb" data-action="lihat-foto-sakit" data-id="${s.id}" alt="Foto surat sakit">`
       : "-";
+    const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${p ? escapeHtml(p.nama) : "(dihapus)"}</td>
       <td>${formatTglIndo(s.tglMulai)}</td>
       <td>${formatTglIndo(s.tglSelesai)}</td>
       <td>${s.jumlahHari}</td>
@@ -383,7 +386,7 @@ function resetFormFotoSakit() {
 }
 
 function simpanSuratSakit() {
-  const personaliaId = document.getElementById("fSakitPegawai").value;
+  const personaliaId = document.getElementById("fSakitPegawaiId").value;
   const tglMulai = document.getElementById("fSakitMulai").value;
   const tglSelesai = document.getElementById("fSakitSelesai").value;
   if (!personaliaId || !tglMulai || !tglSelesai) { alert("Lengkapi semua data"); return; }
@@ -406,7 +409,7 @@ function simpanSuratSakit() {
     renderPersonaliaTable();
   }
   saveDB();
-  renderSakitTable();
+  renderSakitPeriodeSlip();
   resetFormFotoSakit();
   document.getElementById("modalSakit").classList.remove("active");
 }
@@ -421,7 +424,7 @@ function hapusSuratSakit(id) {
   }
   DB.suratSakit = DB.suratSakit.filter(x => x.id !== id);
   saveDB();
-  renderSakitTable();
+  renderSakitPeriodeSlip();
   renderPersonaliaTable();
 }
 
@@ -1602,12 +1605,13 @@ function navigateTo(pageKey) {
   document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === pageKey));
   const titles = {
     dashboard: "Dashboard", personalia: "Personalia",
-    sakit: "Surat Sakit", slip: "Slip Gaji", riwayat: "Riwayat Slip", laporan: "Laporan Periode", pengaturan: "Pengaturan"
+    slip: "Slip Gaji", riwayat: "Riwayat Slip", laporan: "Laporan Periode", pengaturan: "Pengaturan"
   };
   document.getElementById("pageTitleMobile").textContent = titles[pageKey] || "";
   document.getElementById("sidebar").classList.remove("open");
-  if (pageKey === "slip" && !document.getElementById("inpSlipBulan").value.trim()) {
-    autoIsiBulanSlipDariKehadiran();
+  if (pageKey === "slip") {
+    renderSakitPeriodeSlip();
+    if (!document.getElementById("inpSlipBulan").value.trim()) autoIsiBulanSlipDariKehadiran();
   }
 }
 
@@ -1651,7 +1655,7 @@ function importDataFile(file) {
 function renderAll() {
   renderPersonaliaTable();
   populateAllPersonaliaSelects();
-  renderSakitTable();
+  renderSakitPeriodeSlip();
   renderRiwayatTable();
   renderDashboard();
   renderPengaturanForm();
@@ -1721,9 +1725,13 @@ function startPayrollApp() {
     if (btn.dataset.action === "hapus-personalia") hapusPersonalia(btn.dataset.id);
   });
 
-  // Surat Sakit
-  document.getElementById("btnTambahSakit").addEventListener("click", () => {
-    document.getElementById("fSakitPegawai").innerHTML = DB.personalia.map(p => `<option value="${p.id}">${escapeHtml(p.nama)}</option>`).join("");
+  // Surat Sakit (dari halaman Slip Gaji, terikat pegawai yang sedang dipilih)
+  document.getElementById("btnTambahSakitSlip").addEventListener("click", () => {
+    const personaliaId = document.getElementById("selSlipPegawai").value;
+    const p = getPersonaliaById(personaliaId);
+    if (!p) { alert("Pilih pegawai terlebih dahulu di atas."); return; }
+    document.getElementById("fSakitPegawaiId").value = personaliaId;
+    document.getElementById("fSakitPegawaiNama").value = p.nama;
     document.getElementById("fSakitKeterangan").value = "";
     document.getElementById("fSakitMulai").value = "";
     document.getElementById("fSakitSelesai").value = "";
@@ -1749,7 +1757,7 @@ function startPayrollApp() {
     }
   });
   document.getElementById("btnHapusFotoSakit").addEventListener("click", resetFormFotoSakit);
-  document.querySelector("#tblSakit tbody").addEventListener("click", (e) => {
+  document.querySelector("#tblSakitPeriode tbody").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-action]");
     if (!btn) return;
     if (btn.dataset.action === "hapus-sakit") hapusSuratSakit(btn.dataset.id);
@@ -1766,7 +1774,11 @@ function startPayrollApp() {
   });
 
   // Slip
-  document.getElementById("selSlipPegawai").addEventListener("change", autoIsiBulanSlipDariKehadiran);
+  document.getElementById("selSlipPegawai").addEventListener("change", () => {
+    autoIsiBulanSlipDariKehadiran();
+    renderSakitPeriodeSlip();
+  });
+  document.getElementById("inpCutOff").addEventListener("change", renderSakitPeriodeSlip);
   document.getElementById("btnMuatDataSlip").addEventListener("click", muatDanHitungSlip);
   document.getElementById("btnGenerateSlip").addEventListener("click", generateSlip);
   document.getElementById("autoCalcSummary").addEventListener("click", (e) => {
